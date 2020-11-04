@@ -13,7 +13,7 @@ MAX_NUM_SHARES = 2147483647
 MAX_OPEN_POSITIONS = 5
 MAX_STEPS = 20000
 
-INITIAL_ACCOUNT_BALANCE = 10000
+INITIAL_ACCOUNT_BALANCE = 100
 
 
 class StockTradingEnv(gym.Env):
@@ -36,33 +36,33 @@ class StockTradingEnv(gym.Env):
         #    low=np.array([0, 0]), high=np.array([3, 1]), dtype=np.float16)
         self.action_space = spaces.Discrete(3)
         # Prices contains the OHCL values for the last five prices
-        self.observation_space = spaces.MultiDiscrete([5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5])
-
+        self.observation_space = spaces.MultiDiscrete([3, 3, 3, 3, 3, 3])
+ 
         self.T = 5 # Length of each episode
 
     def _next_observation(self):
         # Get the stock data points for the last 5 days and scale to between 0-1
         frame = np.append([
             (self.df.loc[self.current_step: self.current_step +
-                        5, 'Open'].values - self.MIN_SHARE_PRICE) / (self.MAX_SHARE_PRICE - self.MIN_SHARE_PRICE)],
+                        0, 'Open'].values - self.MIN_SHARE_PRICE) / (self.MAX_SHARE_PRICE - self.MIN_SHARE_PRICE)],
+            #[(self.df.loc[self.current_step: self.current_step +
+                       # 1, 'High'].values - self.MIN_SHARE_PRICE) / (self.MAX_SHARE_PRICE - self.MIN_SHARE_PRICE),
+            #(self.df.loc[self.current_step: self.current_step +
+                       # 1, 'Low'].values - self.MIN_SHARE_PRICE) / (self.MAX_SHARE_PRICE - self.MIN_SHARE_PRICE),
             [(self.df.loc[self.current_step: self.current_step +
-                        5, 'High'].values - self.MIN_SHARE_PRICE) / (self.MAX_SHARE_PRICE - self.MIN_SHARE_PRICE),
+                        0, 'Close'].values - self.MIN_SHARE_PRICE) / (self.MAX_SHARE_PRICE - self.MIN_SHARE_PRICE),
             (self.df.loc[self.current_step: self.current_step +
-                        5, 'Low'].values - self.MIN_SHARE_PRICE) / (self.MAX_SHARE_PRICE - self.MIN_SHARE_PRICE),
-            (self.df.loc[self.current_step: self.current_step +
-                        5, 'Close'].values - self.MIN_SHARE_PRICE) / (self.MAX_SHARE_PRICE - self.MIN_SHARE_PRICE),
-            (self.df.loc[self.current_step: self.current_step +
-                        5, 'Volume'].values - self.MIN_VOLUME) / (self.MAX_VOLUME - self.MIN_VOLUME),
+                        0, 'Volume'].values - self.MIN_VOLUME) / (self.MAX_VOLUME - self.MIN_VOLUME),
             ]) # Volume is the amount of shares that changed hands during a given day
         
         # Append additional data and scale each value to between 0-1
         obs = np.append(frame, [
-            self.balance / MAX_ACCOUNT_BALANCE,
+            # self.balance / MAX_ACCOUNT_BALANCE,
             self.max_net_worth / MAX_ACCOUNT_BALANCE,
             self.shares_held / MAX_NUM_SHARES,
             self.cost_basis / self.MAX_SHARE_PRICE,
-            self.total_shares_sold / MAX_NUM_SHARES,
-            self.total_sales_value / (MAX_NUM_SHARES * self.MAX_SHARE_PRICE),
+            # self.total_shares_sold / MAX_NUM_SHARES,
+            # self.total_sales_value / (MAX_NUM_SHARES * self.MAX_SHARE_PRICE),
         ])
         
         return self.discretize(obs)
@@ -71,7 +71,7 @@ class StockTradingEnv(gym.Env):
         # Set the current price to a random price within the time step
         current_price = random.uniform(
             self.df.loc[self.current_step, "Open"], self.df.loc[self.current_step, "Close"])
-
+        print(current_price)
 
         if action == 0:
             # Buy amount % of balance in shares
@@ -84,8 +84,11 @@ class StockTradingEnv(gym.Env):
             additional_cost = shares_bought * current_price
 
             self.balance -= additional_cost
-            self.cost_basis = (
-                prev_cost + additional_cost) / (self.shares_held + shares_bought)
+            if self.shares_held+shares_bought != 0:
+                self.cost_basis = (
+                    prev_cost + additional_cost) / (self.shares_held + shares_bought)
+            else:
+                self.cost_basis = 0
             self.shares_held += 1
 
         elif action == 1:
@@ -93,8 +96,8 @@ class StockTradingEnv(gym.Env):
             shares_sold = 1 #int(self.shares_held * amount)
             self.balance += shares_sold * current_price
             self.shares_held -= shares_sold
-            self.total_shares_sold += shares_sold
-            self.total_sales_value += shares_sold * current_price
+            # self.total_shares_sold += shares_sold
+            # self.total_sales_value += shares_sold * current_price
 
         else:# do nothing
             pass 
@@ -119,7 +122,7 @@ class StockTradingEnv(gym.Env):
 
         delay_modifier = (self.current_step / MAX_STEPS)
 
-        reward = self.balance * delay_modifier
+        reward = round(self.net_worth, 2) # * delay_modifier
         done = self.timestep >= self.T # Allow a trading period of 5 days
 
         obs = self._next_observation()
@@ -161,14 +164,11 @@ class StockTradingEnv(gym.Env):
 
     def discretize(self,array):
         for i in range(array.shape[0]):
-            if array[i]>=0 and array[i] <0.2:
+            if array[i]>=0 and array[i] <0.3:
                 array[i] = int(0)
-            elif array[i]>=0.2 and array[i] <0.4:
+            elif array[i]>=0.3 and array[i] <0.7:
                 array[i] = int(1)
-            elif array[i]>=0.4 and array[i] <0.6:
+            elif array[i]>=0.7:
                 array[i] = int(2)
-            elif array[i]>=0.6 and array[i] <0.8:
-                array[i] = int(3)
-            else:
-                array[i] = int(4)
+
         return array.astype(dtype=np.int32, copy=False)

@@ -6,6 +6,7 @@ import numpy as np
 import gym
 import collections
 import itertools
+from scipy.special import softmax
 
 from stable_baselines import logger
 from stable_baselines.common import tf_util, OffPolicyRLModel, SetVerbosity, TensorboardWriter
@@ -31,20 +32,33 @@ class StateHCA(object):
       x_s, a_s = states[i], actions[i]
       G = ((gamma**np.arange(T - i)) * rewards[i:]).sum()
       G_hca = np.zeros(self.n_a)
-      
+      state_xs = get_state(x_s)
       for j in range(i, T):
         x_t, r = states[j], rewards[j]
-        hca_factor = h[:, x_s, x_t].T - pi[x_s, :] 
-        G_hca += gamma**(j - i) * r * hca_factor # (2)
+        # hca_factor = h[:, x_s, x_t].T - pi[x_s, :] 
+        state_num = get_state(np.concatenate((x_s, x_t), axis=None))
+        hca_factor = [min(x, 10) for x in np.nan_to_num(np.true_divide(h[state_num], pi[state_xs]), 1)]
+        
+        G_hca += np.multiply(gamma**(j - i) * r, hca_factor) # (2)
 
         # train h_beta via cross-entropy
-        dlogits_h[a_s, x_s, x_t] += 1
-        dlogits_h[:, x_s, x_t] -= h[:, x_s, x_t]
+        # dlogits_h[a_s, x_s, x_t] += 1
+        # dlogits_h[:, x_s, x_t] -= h[:, x_s, x_t]
+        dlogits_h[state_num, a_s] += 1
+        dlogits_h[state_num] = np.subtract(dlogits_h[state_num], h[state_num])
+        
+      dlogits_h /= self.n_a
 
+      # Train probabilities
       for a in range(self.n_a):
-        dlogits[x_s, a] += G_hca[a]
-        dlogits[x_s] -= pi[x_s] * G_hca[a]
-      dV[x_s] += (G - V[x_s])
+        # dlogits[x_s, a] += G_hca[a]
+        # dlogits[x_s] -= pi[x_s] * G_hca[a]
+        dlogits[state_xs, a] += G_hca[a]
+        dlogits[state_xs] -= np.multiply(pi[state_xs], G_hca[a])
+        
+      dlogits /= self.n_a
+      # dV[x_s] += (G - V[x_s])
+      dV[state_xs] += (G - V[state_xs])
 
     return dlogits, dV, dlogits_h
 
@@ -55,7 +69,9 @@ def hca(env, num_episodes=2000):
   
   n_s = len(env.observation_space.nvec)
   n_a = env.action_space.n
-  stateHCA = StateHCA(n_s, n_a)
+  # Use either algo for the model, the experiment code is the same
+  HCAmodel = StateHCA(n_s, n_a)
+  # HCAmodel = ReturnHCA(n_s, n_a)
 
   # Keeps track of useful statistics
   stats = plotting.EpisodeStats(
@@ -64,36 +80,20 @@ def hca(env, num_episodes=2000):
 
   # Initialize
   state = env.reset()
-
-  policy_one_hot = tf.one_hot(state, 5)
-  pi = (tf.contrib.layers.fully_connected( # Initialize the policy as Uniformly Random
-                inputs=tf.expand_dims(policy_one_hot, 0),
-                num_outputs=env.action_space.n,
-                activation_fn=None,
-                weights_initializer=tf.zeros_initializer)+1)/n_a
-  pi = tf.squeeze(pi)
   
+  # Initialize the policy as Uniformly Random
+  # First 13 dimenstions are for obs
+  # last 1 dimension is for probabilities
+  pi = np.ones((3**7, 3), dtype=np.float64) / n_a
+  
+  # Initialize the Value function as all 0's
+  # These  dimenstions are for obs
+  V = np.zeros(3**6, dtype=np.float16)  
 
-  value_one_hot = tf.one_hot(np.zeros(n_s, dtype=int), 15) # Assume to quantize the value space into 15 levels
-  # because the total return seems to fall between 0 to 7500
-  V = (tf.contrib.layers.fully_connected( # Initialize the Value function as all 0's
-                inputs=tf.expand_dims(value_one_hot, 0),
-                num_outputs=1,
-                activation_fn=None,
-                weights_initializer=tf.zeros_initializer)+1)/n_a
+  # first n_s: current state, second n_s: any future state         
+  h = np.ones((3**13, 3), dtype=np.float16) / n_a
 
-  state_matrix = np.tile(state, (len(state), 1))
-  print(state_matrix)
-  state_one_hot_matrix = tf.one_hot(state_matrix, 5)
-  h = (tf.contrib.layers.fully_connected( # first n_s: current state, second n_s: any future state
-                inputs=tf.expand_dims(state_one_hot_matrix, 0),
-                num_outputs=3,
-                activation_fn=None,
-                weights_initializer=tf.zeros_initializer)+1)/n_a
-  h = tf.squeeze(h)
 
-  print(pi)
-  print(h)
   for i_episode in range(num_episodes):
     # Reset the environment and pick the first action
     state = env.reset()
@@ -102,11 +102,12 @@ def hca(env, num_episodes=2000):
     # episode = []
     states, actions, rewards = [], [], []
 
-    action_probs = tf.reduce_sum(pi, 0)/tf.reduce_sum(pi)
+    action_probs = pi[get_state(state)]
+    print(action_probs)
     for t in itertools.count():
-      # Take a step
+      # Take a step     
+      action = np.random.choice(np.arange(len(action_probs)), p=[action_probs[0], action_probs[1], max(1-action_probs[0]-action_probs[1],0)])
 
-      action = np.random.choice(np.arange(len(action_probs)), p=action_probs.numpy())
       next_state, reward, done, _ = env.step(action)
 
       # Keep track of the transition
@@ -115,7 +116,7 @@ def hca(env, num_episodes=2000):
       rewards.append(reward) 
 
       # Update statistics
-      stats.episode_rewards[i_episode] += reward
+      stats.episode_rewards[i_episode] = max(stats.episode_rewards[i_episode], env.max_net_worth)
       stats.episode_lengths[i_episode] = t
 
       # Print out which step we're on, useful for debugging.
@@ -126,18 +127,20 @@ def hca(env, num_episodes=2000):
               break
 
       state = next_state
+      # Get action probabilities for the new state
+      action_probs = pi[get_state(state)]
 
     # Go through the episode and make policy updates
     # Update our policy estimator
-    dlogits, dV, dlogits_h = stateHCA.update(pi, V, h, states, actions, rewards, gamma=1.0)
+    dlogits, dV, dlogits_h = HCAmodel.update(pi, V, h, states, actions, rewards, gamma=0.1)
     # Follow the gradients
-    pi = [a + b for a, b in zip(pi, dlogits)]
+    pi = softmax([[a + b for a, b in zip(pi[i], dlogits[i])] for i in range(len(pi))], axis=1)
     V = [a + b for a, b in zip(V, dV)]
-    h = [a + b for a, b in zip(h, dlogits_h)]
-    
-  return stats
+    h = softmax([[a + b for a, b in zip(h[i], dlogits_h[i])] for i in range(len(h))], axis=1)
 
-"""class ReturnHCA(object, n_s, n_a, num_episodes=2000):
+  return stats
+'''
+class ReturnHCA(object):
   def __init__(self, n_s, n_a, return_bins):
     self.h_dim = len(return_bins)
     self._return_bins = return_bins
@@ -150,17 +153,24 @@ def hca(env, num_episodes=2000):
 
     for i in range(T):
       x_s, a_s, r = states[i], actions[i], rewards[i]
+      state_xs = get_state(x_s)
       G = ((gamma**np.arange(T - i)) * rewards[i:]).sum()
       G_bin_ind = (np.abs(self._return_bins - G)).argmin()
-      hca_factor = (1. - pi[x_s, :] / h[:, x_s, G_bin_ind])
+      hca_factor = (1. - pi[state_xs, :] / h[:, state_xs, G_bin_ind])
       G_hca = G * hca_factor
 
-      dlogits[x_s, a_s] += G_hca[a_s]
-      dlogits[x_s] -= pi[x_s] * G_hca[a_s]
+      dlogits[state_xs, a_s] += G_hca[a_s]
+      dlogits[state_xs] -= pi[x_s] * G_hca[a_s]
       dV[x_s] += (G - V[x_s])
       dlogits_h[a_s, x_s, G_bin_ind] += 1
       dlogits_h[:, x_s, G_bin_ind] -= h[:, x_s, G_bin_ind]
         
     return dlogits, dV, dlogits_h
+'''
 
-"""
+def get_state(state):
+  res = 0
+  for i in range(len(state)):
+    res += state[i] * (3**i)
+  return res
+
