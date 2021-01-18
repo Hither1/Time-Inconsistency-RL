@@ -40,7 +40,6 @@ class StateHCA_NN(object):
 
     # Use cross-entropy as the loss function
     self.h_probs = tf.squeeze(tf.nn.softmax(self.h_layer))
-    self.h_loss = -sum([x * np.log(x) for x in self.h_probs])
 
     #self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
 
@@ -54,10 +53,13 @@ class StateHCA_NN(object):
   def train_step(self):
     loss_object = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
     with tf.GradientTape() as tape:
+      tape.watch(self.h_probs)
       loss_value = loss_object(self.h_probs, self.h_probs)
 
-      grads = tape.gradient(loss_value, )
-      self.optimizer.apply_gradients(zip(grads, ))
+    grads = tape.gradient(loss_value, [self.h_probs, self.h_probs])
+
+    print("Grad value is "+ str(grads))
+    self.optimizer.apply_gradients(zip(grads, [tf.Variable(self.h_probs), tf.Variable(self.h_probs)]))
 
 
   def update(self, pi, V, states, rewards, gamma):

@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from HCA.hca_classes import hca # The table look-up version
-#from HCA.hca_NN import hca # The NN version
+#from HCA.hca_classes import hca # The table look-up version
+from HCA.hca_NN import hca # The NN version
 
 import tensorflow as tf
 from tradingenv import StockTradingEnv
