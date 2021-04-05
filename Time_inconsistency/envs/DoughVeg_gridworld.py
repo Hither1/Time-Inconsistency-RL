@@ -59,7 +59,9 @@ class GridworldEnv(discrete.DiscreteEnv):
                 return 10
             else:
                 return 0
-            
+
+        self.copy_reward_fn = reward
+
         P = {}
         grid = np.arange(nS).reshape(shape)
         it = np.nditer(grid, flags = ['multi_index'])

@@ -5,11 +5,11 @@ import sys
 from collections import defaultdict
 import matplotlib.pyplot as plt
 
-discount_factor = 0.01
-discounting = 'hyper' #'hyper', 'exp'
-init_policy = 'random' #'random' 'stable'
+discount_factor = 0.2
+discounting = 'hyper'  # 'hyper', 'exp'
+init_policy = 'random'  # 'random' 'stable'
 
-epsilon = .2
+epsilon = .1
 num_episodes = 70000  # 0000
 
 env = GridworldEnv()
@@ -56,6 +56,7 @@ def make_epsilon_greedy_policy(Q, epsilon, nA):
     return policy_fn
 
 
+'''
 def expUtility(state, action, delay):
     if():
         return 0
@@ -64,6 +65,8 @@ def expUtility(state, action, delay):
         next_state, reward, done, _ = env.step(action)
         next_action =
         return u + expUtility(next_state, next_action, delay+1)
+'''
+
 
 # Q-learning (off-policy TD control)
 def td_control(env, num_episodes, step_size):
@@ -94,19 +97,34 @@ def td_control(env, num_episodes, step_size):
 
         for t in range(100):
             probs = policy(state)
+            print("current state " + str(state))
+            print("probs" + str(probs))
             action = np.random.choice(np.arange(len(probs)), p=probs)
             next_state, reward, done, _ = env.step(action)
             episode.append((state, action, reward))
+            if done:
+                break
+            state = next_state
+
+        for i in range(len(episode)):
+            state_i, action_i, reward_i = episode[i]
+            Q[state_i][action_i] = 0
+            for j in range(i, len(episode)):  # add up the discounted future rewards
+                state_j, action_j, reward_j = episode[j]
+                print("discount value is " + str(discount(j - i)))
+                Q[state_i][action_i] += discount(j - i) * reward_j
+
+        for t in range(len(episode)):
             # Update q_value for a state-action pair Q(s,a):
             # Q(s,a) = Q(s,a) + α( r + γmaxa' Q(s',a') - Q(s,a) )
-            q_sa = Q[state][action]
-            # get the action for next step
-            next_probs = policy(next_state)
-            next_action = np.random.choice(np.arange(len(next_probs)), p=probs)
-            max_q_sa_next = Q[next_state][next_action]
+            state, action, reward = episode[t]
+            # get the max of q value of next state
+            if t == len(episode) - 1:
+                break
+            next_state, next_action, next_reward = episode[t + 1]  # the next state that happened during the episode
+            max_q_sa_next = max(Q[next_state])
             # Do the computation
-            Q[state][action] = q_sa + step_size * (reward + discount(t) * max_q_sa_next - q_sa)
-
+            Q[state][action] = Q[state][action] + step_size * (max_q_sa_next - Q[state][action])
 
             if state == 9 and action == 0:  # check for possible JUMP at 9 due to noisy policy
 
@@ -119,7 +137,6 @@ def td_control(env, num_episodes, step_size):
                 curr_Q = Q[state]
                 print('curr_policy_9:', curr_policy)
                 print('curr_Q[9]:', curr_Q)
-
 
                 print('-----')
 
@@ -136,14 +153,10 @@ def td_control(env, num_episodes, step_size):
                 print('curr_policy:', curr_policy)
                 print('curr_Q[21]:', curr_Q)
 
-
-                #print('trajectory aft 21:', episode[first_occurence_idx:])
+                # print('trajectory aft 21:', episode[first_occurence_idx:])
 
                 print('--------------')
 
-                if done:
-                    break
-                state = next_state
         # Track Q[21] for all actions and plot
         Q_21_u += [Q[21][0]]
         Q_21_r += [Q[21][1]]
@@ -166,9 +179,9 @@ Q_21_b = []
 Q_21_l = []
 np.random.seed(0)
 
-Q = td_control(env, num_episodes, step_size=0.1)
+Q = td_control(env, num_episodes, step_size=0.5)
 
-#------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------
 
 '''Checking criticals'''
 print('EPSILON:', epsilon)
@@ -177,21 +190,20 @@ print('DISCOUNTING:', discounting)
 print('-----')
 print('(9, UP) first appears at ep:', critical_episode_9)
 print('visitation to 21 aft:', critical_states_update_order[critical_index_9:].count(21))
-#print('(21, RIGHT) first appears at ep:', critical_episode_21)
+# print('(21, RIGHT) first appears at ep:', critical_episode_21)
 print('Q(21, RIGHT) > Q(21, UP) first appears at ep:', critical_episode_21)
 
-x = [i for i in range(1, 1+len(Q_21_u))]
+x = [i for i in range(1, 1 + len(Q_21_u))]
 
 plt.figure()
 plt.plot(x, np.array(Q_21_u) - np.array(Q_21_r))
 plt.show()
 
 plt.figure()
-plt.plot(x, Q_21_u, label = 'u')
-plt.plot(x, Q_21_r, label = 'r')
-plt.plot(x, Q_21_b, label = 'b')
-plt.plot(x, Q_21_l, label = 'l')
+plt.plot(x, Q_21_u, label='u')
+plt.plot(x, Q_21_r, label='r')
+plt.plot(x, Q_21_b, label='b')
+plt.plot(x, Q_21_l, label='l')
 plt.legend()
 plt.title("Off-policy TD Control")
 plt.show()
-
