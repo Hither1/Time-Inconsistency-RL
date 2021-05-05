@@ -7,22 +7,22 @@ Policy ---> agent in original paper
 
 """
 
-#from envs.DoughVeg_gridworld import GridworldEnv
-from envs.DoughVeg_windy import GridworldEnv
+from envs.DoughVeg_gridworld import GridworldEnv
+#from envs.DoughVeg_windy import GridworldEnv
 import numpy as np
 import pandas as pd
 import sys
 from collections import defaultdict
 import matplotlib.pyplot as plt
 
-current_env_windy = True  #
+current_env_windy = False  #
 
 discount_factor = 1
 discounting = 'hyper'  # 'hyper', 'exp'
 init_policy = 'random'  # 'random' 'stable'
 
-epsilon = .4
-num_episodes = 20000  # 0000
+epsilon = .6
+num_episodes = 40000  # 0000
 
 env = GridworldEnv()
 

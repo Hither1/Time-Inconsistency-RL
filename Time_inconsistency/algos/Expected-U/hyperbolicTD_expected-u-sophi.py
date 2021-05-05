@@ -107,7 +107,7 @@ def td_control(env, num_episodes, step_size):
         # An episode is an array of (state, action, reward) tuples
         episode = []
         state = env.reset()
-        #state = 8
+        #state = 21
 
         if is_wall(state):
             # print('init on wall, skip')
