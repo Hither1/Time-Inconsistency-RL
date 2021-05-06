@@ -28,7 +28,7 @@ discount_factor = 1
 discounting = 'hyper'  # 'hyper', 'exp'
 init_policy = 'random'  # 'random' 'stable'
 
-alpha = .35  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
+alpha = .6  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 epsilon = .1
 num_episodes = 100000  # 0000
 penalty = 0.1
@@ -179,7 +179,7 @@ def td_control(env, num_episodes, step_size):
                         episode.append((next_state, np.argmax(Q[state]), 10))
                 break
             state = next_state  # update to the next state
-        episode_length.append(len(episode))
+        revisits.append(current_revisit)
         # Offline update, backward
         # 1.
         for a in range(env.action_space.n):

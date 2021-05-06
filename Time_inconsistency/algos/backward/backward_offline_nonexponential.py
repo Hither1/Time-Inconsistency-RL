@@ -23,9 +23,9 @@ discount_factor = 1
 discounting = 'hyper'  # 'hyper', 'exp'
 init_policy = 'random'  # 'random' 'stable'
 
-alpha = .35  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
+alpha = .5  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 epsilon = .1
-num_episodes = 10000  # 000  # 0000
+num_episodes = 100000  # 000  # 0000
 
 env = GridworldEnv()
 
