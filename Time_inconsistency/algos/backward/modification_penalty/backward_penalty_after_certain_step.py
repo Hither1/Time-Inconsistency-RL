@@ -1,10 +1,10 @@
 """
-Created on 4 May, 2021
+Created on Mon Feb 2
 
 @author: Huangyuan
 
 This script is about
-adding penalty that is constant for each step after the episode has reached a certain length
+adding penalty that is constant for each step
 
 The backward update algo now has F and H factors
 
@@ -13,14 +13,14 @@ We see how the backward update performs in simple/windy gridworlds
 """
 
 from envs.DoughVeg_gridworld import GridworldEnv
-#from envs.DoughVeg_windy import GridworldEnv
+# from envs.DoughVeg_windy import GridworldEnv
 import numpy as np
 import pandas as pd
 import sys
 from collections import defaultdict
 import matplotlib.pyplot as plt
-from scipy.special import softmax
 import time
+import pylab as pl
 
 current_env_windy = False  # Change between normal/windy gridworlds
 
@@ -28,10 +28,10 @@ discount_factor = 1
 discounting = 'hyper'  # 'hyper', 'exp'
 init_policy = 'random'  # 'random' 'stable'
 
-alpha = .37  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
+alpha = .35  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 epsilon = .1
 num_episodes = 80000  # 0000
-penalty = 0.8
+penalty = 0.4
 
 env = GridworldEnv()
 
@@ -82,7 +82,8 @@ def make_policy(Q, epsilon, nA):
 
 # Hyperbolic Discounted Q-learning (off-policy TD control)
 def td_control(env, num_episodes, step_size):
-    global q_correction_21, q_u, q_r, q_b, q_l
+    global q_correction_21, q_u, q_r, q_b, q_l, episode_length
+    global critical_episode_21, revisits
 
     # The type of discounting
     discount = auto_discounting()
@@ -105,12 +106,18 @@ def td_control(env, num_episodes, step_size):
     f = defaultdict(lambda: defaultdict(lambda: np.zeros(env.action_space.n)))
     # h[m][n][state][action], m is the time when the reward happened, n is the time at which we take expectation
     h = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: np.zeros(env.action_space.n))))
-
+    for m in range(4, 100):
+        for n in range(4, 100):
+            for s in range(24):
+                for a in range(env.action_space.n):
+                    h[m][n][s][a] = -1*penalty
     # Take the Utility function from reward function of the environment
     # Utility = env.copy_reward_fn
     agent = make_policy(Q, epsilon, env.action_space.n)
 
+    first_time_right_larger = False
     for i_episode in range(1, num_episodes + 1):
+        states = set({})  # keep a set of states we already visited
         if current_env_windy:
             print("Q[4]", Q[4])
             print("Q[10]", Q[10])
@@ -134,9 +141,14 @@ def td_control(env, num_episodes, step_size):
             continue
 
         print_trajectory = False
-
+        current_revisit = 0
         # Sample a new trajectory
         for t in range(100):
+            if state in states:
+                current_revisit += 1
+            else:
+                states.add(state)
+
             probs = agent(state)  # Select an action according to policy
             if current_env_windy and state == 31:
                 action = 0
@@ -147,8 +159,8 @@ def td_control(env, num_episodes, step_size):
             next_state, reward, done, _ = env.step(action)
 
             # for each m, update all n that n <= t
-            for n in range(0, t):
-                h[t][n][state][action] = -1 * penalty
+            #for n in range(0, t):
+             #   h[t][n][state][action] = -1 * penalty
 
             if next_state != state:
                 episode.append((state, action, reward))
@@ -171,8 +183,12 @@ def td_control(env, num_episodes, step_size):
                         episode.append((next_state, np.argmax(Q[state]), 10))
                 break
             state = next_state  # update to the next state
+        revisits.append(current_revisit)
         # Offline update, backward
-        # 1. Initialize the boundary values for f
+        # 1.
+        #for a in range(env.action_space.n):
+            #h[len(episode) - 1][len(episode) - 1][next_state][a] = -1 * penalty
+        # Initialize the boundary values for f
         if current_env_windy:
             for a in range(env.action_space.n):
                 if next_state == 4:
@@ -200,93 +216,46 @@ def td_control(env, num_episodes, step_size):
         for t in range(len(episode) - 2, -1, -1):
             s, a, r = episode[t]
             next_state, next_action, next_r = episode[t + 1]
+
+            for action in range(env.action_space.n):
+                h[t][t][s][action] = -1 * penalty
             print(episode)
             # Update (g, h,) f
-            # f should be the expected value of all its next states
             nA = env.action_space.n
-            # s_prime = []
-            # Calculate for next state
             # Update f factor
             f[t][s][a] = max(f[t + 1][next_state]) / discount(len(episode) - 1 - (t + 1)) * discount(
                 len(episode) - 1 - t)
             # Update h factor(s)
             for m in range(t + 1, len(episode)):
                 h[m][t][s][a] = max(h[m][t + 1][next_state]) / discount(m - (t + 1)) * discount(m - t)
+                print("m, t, s, a, next_state", m, t, s, a, next_state)
+                print("h[m][t][s]", h[m][t][s])
+                print("h[m][t][s][a]", h[m][t][s][a])
+                if h[m][t][s][a] >= 0:
+                    print("h[m][t+1][next_state]")
+                    print(h[m][t+1][next_state])
 
-            print("len of episode", len(episode))
-            print(f[len(episode) - 1][2], f[len(episode) - 1][8])
-            print("f[t][s][a]", f[t][s][a])
-            print("Q next state", max(Q[next_state]), "where next state is", next_state)
 
             # Update Q
             # Q[s][a] = max(Q[next_state]) - (
             #         max(f[t+1][next_state]) - f[t][s][a])
             Q[s][a] = Q[s][a] + alpha * (max(Q[next_state]) - (
-                    max(f[t + 1][next_state]) - f[t][s][a]) - Q[s][a]) \
-                      + (-1 * penalty) - (sum([max(h[m][t + 1][next_state]) for m in range(t + 1, len(episode))]) - sum(
-                [h[m][t][s][a] for m in range(t + 1, len(episode))]))
-            print("Q[s][a], s, a", Q[s][a], s, a)
-
-            '''
-            if state == 25 and t == 0 and action == 1:
-                print_trajectory = True
-
-                print('----')
-                print('s:', state)
-                print('d:', t)
-                print('a:', action)
-
-                #print('probs:', probs)
-
-                print('next_state:', next_state)
-                print('reward:', reward)
-                print('done:', done)
-                #print('u:', u)
-
-                print('t+1', t+1)
-                for a_ in range(4):
-                    print('a_:', a_)
+                    max(f[t + 1][next_state]) - f[t][s][a])
+                                         + (-1 * penalty) - (sum(
+                        [max(h[m][t + 1][next_state]) for m in range(t + 1, len(episode))]) - sum(
+                        [h[m][t][s][a] for m in range(t + 1, len(episode))])) - Q[s][a])
+            # Debug
+            #if sum([max(h[m][t + 1][next_state]) for m in range(t + 1, len(episode))]) - sum(
+               #     [h[m][t][s][a] for m in range(t + 1, len(episode))]) > 0:
+                #print("Checking the sign of the H adjustment term")
+                #print(sum([max(h[m][t + 1][next_state]) for m in range(t + 1, len(episode))]) - sum(
+                #    [h[m][t][s][a] for m in range(t + 1, len(episode))]))
 
 
+        if Q[21][1] >= Q[21][3] and Q[21][1] >= Q[21][0] and not first_time_right_larger:
+            critical_episode_21 = i_episode
+            first_time_right_larger = True
 
-
-            if state == 9 and action == 0:  # check for possible JUMP at 9 due to noisy policy
-
-                if critical_episode_9 == 0:
-                    critical_episode_9 = i_episode - 1
-
-                # count_9 += 1
-
-                #curr_policy = np.argmax(agent(state))
-                curr_Q = Q[state][0]  # delay = 0
-                #print('curr_policy_9:', curr_policy)
-                #print('curr_Q[9]:', curr_Q)
-
-                #print('-----')
-
-            # if state == 21 and action == 1: # check for when the change to SPE is reflected at 21
-            if state == 21 and Q[21][0][1] > Q[21][0][0]:
-
-                if critical_episode_21 == 0:  # update the episode in which we reach state 21
-                    critical_episode_21 = i_episode - 1
-
-                # count_21 += 1
-
-                #curr_policy = np.argmax(agent(state))
-                curr_Q = Q[state][0]
-                #print('curr_policy:', curr_policy)
-                #print('curr_Q[21]:', curr_Q)
-
-                # print('trajectory aft 21:', episode[first_occurence_idx:])
-
-
-        if print_trajectory == True:
-            print('episode:', episode)
-            print('Q[s = 9][d = 0][a = 0]:', Q[9][0][0])
-
-            #if f[9][0][0] > 10:
-                #break
-        '''
         if current_env_windy:
             # Track Q[24] for all actions and plot
             q_u.append([Q[24][0], Q[25][0], Q[31][0], Q[32][0]])
@@ -311,8 +280,17 @@ critical_states_update_order = []
 critical_index_9 = 0
 critical_episode_9 = 0
 critical_index_21 = 0
-critical_episode_21 = 0
+critical_episode_21 = 0# only after a certain length of episode
+penalty = .1
+result = sum([-1 * penalty / (1 + i) for i in range(4, 8+1)]) + 19 * 1/(1 + 1*8)
+print(result)
+result = sum([-1 * penalty / (1 + i) for i in range(4, 6+1)]) + 19 * 1/(1 + 1*6)
+print(result)
+result = sum([-1 * penalty / (1 + i) for i in range(4, 4+1)]) + 10 * 1/(1 + 1*4)
+print(result)
 
+revisits = []
+episode_length = []
 q_correction_21 = []
 q_u = []
 q_r = []
@@ -334,16 +312,19 @@ print('EPSILON:', epsilon)
 print('POLICY INIT:', init_policy)
 print('DISCOUNTING:', discounting)
 print('-----')
-print('(9, UP) first appears at ep:', critical_episode_9)
 print('visitation to 21 aft:', critical_states_update_order[critical_index_9:].count(21))
-# print('(21, RIGHT) first appears at ep:', critical_episode_21)
+
 print('Q(21, RIGHT) > Q(21, UP) first appears at ep:', critical_episode_21)
 print('Time used: ', end - start)
+
+print("Average number of times the agent has revisited states",
+      sum(revisits) / len(revisits))
 
 if current_env_windy:
     x = [i for i in range(1, 1 + len(q_u))]
     # first pic
     fig, axs = plt.subplots(2, 2)
+    pl.subplots_adjust(hspace=.3)
     axs[0, 0].plot(x, np.array(np.array(q_u)[:, 0]) - np.array(np.array(q_r)[:, 0]))
     axs[0, 0].set_title('Q(24, u) - Q(24, r) (Soph.)')
     axs[0, 1].plot(x, np.array(np.array(q_u)[:, 1]) - np.array(np.array(q_b)[:, 1]))
@@ -357,6 +338,7 @@ if current_env_windy:
 
     # second pic
     fig, axs = plt.subplots(2, 2)
+    pl.subplots_adjust(hspace=.3)
     axs[0, 0].plot(x, np.array(q_u)[:, 0], label='u')
     axs[0, 0].plot(x, np.array(q_r)[:, 0], label='r')
     axs[0, 0].plot(x, np.array(q_b)[:, 0], label='b')
@@ -384,11 +366,12 @@ if current_env_windy:
     fig.show()
 
 else:
+    print("The first time that Q[21][RIGHT] > Q[21][UP] and Q[21][LEFT] is at episode", critical_episode_21)
+
     x = [i for i in range(1, 1 + len(q_u))]
     # first pic
     fig, axs = plt.subplots(1, 2)
-    print("Final Q_u")
-    # print(q_u)
+
     axs[0].plot(x, np.array(q_u)[:, 0] - np.array(q_r)[:, 0])
     axs[0].set_title('Difference Q(21, u) - Q(21, r) (Soph.)')
     axs[1].plot(x, np.array(q_l)[:, 1] - np.array(q_u)[:, 1])
@@ -399,9 +382,13 @@ else:
     # second pic
     fig, axs = plt.subplots(1, 2)
     axs[0].plot(x, np.array(q_u)[:, 0], label='u')
+    print("(21, up)", np.array(q_u)[:, 0][-1])
     axs[0].plot(x, np.array(q_r)[:, 0], label='r')
+    print("(21, right)", np.array(q_r)[:, 0][-1])
     axs[0].plot(x, np.array(q_b)[:, 0], label='b')
+    print("(21, below)", np.array(q_b)[:, 0][-1])
     axs[0].plot(x, np.array(q_l)[:, 0], label='l')
+    print("(21, left)", np.array(q_l)[:, 0][-1])
     axs[0].set_title('Q(s=21) Soph.: Gridworld')
     axs[0].legend()
     axs[1].plot(x, np.array(q_u)[:, 1], label='u')

@@ -7,25 +7,26 @@ Policy ---> agent in original paper
 
 """
 
-from envs.DoughVeg_gridworld import GridworldEnv
-# from envs.DoughVeg_windy import GridworldEnv
+#from envs.DoughVeg_gridworld import GridworldEnv
+from envs.DoughVeg_windy import GridworldEnv
 import numpy as np
 import pandas as pd
 import sys
 from collections import defaultdict
 import matplotlib.pyplot as plt
-from scipy.special import softmax
 import time
+import pylab as pl
 
-current_env_windy = False  # Change between normal/windy gridworlds
+#current_env_windy = False  # Change between normal/windy gridworlds
+current_env_windy = True
 
 discount_factor = 1
 discounting = 'hyper'  # 'hyper', 'exp'
 init_policy = 'random'  # 'random' 'stable'
 
-alpha = .5  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
+alpha = .35  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 epsilon = .1
-num_episodes = 100000  # 000  # 0000
+num_episodes = 80000  # 000  # 0000
 
 env = GridworldEnv()
 
@@ -90,7 +91,7 @@ def td_control(env, num_episodes, step_size):
         for a in range(env.action_space.n):
             Q[10][a] = 3
             Q[28][a] = 10
-            Q[4][a] = 6
+            Q[4][a] = 5
     else:
         for a in range(env.action_space.n):
             Q[2][a] = 19
@@ -106,12 +107,12 @@ def td_control(env, num_episodes, step_size):
     for i_episode in range(1, num_episodes + 1):
         states = set({}) # keep a set of states we already visited
         if current_env_windy:
-            print("Q[2]", Q[2])
-            print("Q[8]", Q[8])
-        else:
             print("Q[4]", Q[4])
             print("Q[10]", Q[10])
             print("Q[28]", Q[28])
+        else:
+            print("Q[2]", Q[2])
+            print("Q[8]", Q[8])
 
         # Print out which episode we're on, useful for debugging.
         if i_episode % 1000 == 0:
@@ -154,7 +155,7 @@ def td_control(env, num_episodes, step_size):
                 print("Ending state", state)
                 if current_env_windy:
                     if next_state == 4:
-                        episode.append((next_state, np.argmax(Q[state]), 6))
+                        episode.append((next_state, np.argmax(Q[state]), 5))
                     elif next_state == 10:
                         episode.append((next_state, np.argmax(Q[state]), 3))
                     elif next_state == 28:
@@ -172,7 +173,7 @@ def td_control(env, num_episodes, step_size):
         if current_env_windy:
             for a in range(env.action_space.n):
                 if next_state == 4:
-                    f[len(episode) - 1][4][a] = 6
+                    f[len(episode) - 1][4][a] = 5
                     f[len(episode) - 1][10][a] = 0
                     f[len(episode) - 1][28][a] = 0
                 elif next_state == 10:
@@ -200,27 +201,14 @@ def td_control(env, num_episodes, step_size):
             # Update (g, h,) f
             # f[t][s][a] = f[t][s][a] + alpha * discount(len(episode) - t) * (f[t+1][next_state][next_action])
             # f should be the expected value of all its next states
-            nA = env.action_space.n
 
-
-
-            print(f[t + 1][next_state])
             f[t][s][a] = max(f[t + 1][next_state]) / discount(len(episode) - 1 - (t + 1)) * discount(
                 len(episode) - 1 - t)
-            print("t", t)
-            print("s", s)
-            print("len of episode", len(episode))
-            print(f[len(episode) - 1][2], f[len(episode) - 1][8])
-            # print("max f", max_s_prime_Q)
+
             print("f[t][s][a]", f[t][s][a])
             print("Q next state", max(Q[next_state]), "where next state is", next_state)
 
             # Update Q
-
-            print("discount()", discount(len(episode) - 1 - (t + 1)))
-            if s == 2 or s == 8:
-                print("Modifying Q[2] or Q[8]")
-                break
             # Q[s][a] = max(Q[next_state]) - (
             #         max(f[t+1][next_state]) - f[t][s][a])
             Q[s][a] = Q[s][a] + alpha * (max(Q[next_state]) - (
@@ -228,9 +216,6 @@ def td_control(env, num_episodes, step_size):
             print("Q[s][a], s, a")
             print(Q[s][a], s, a)
 
-        if Q[21][1] > Q[21][3] and Q[21][1] > Q[21][0] and not first_time_right_larger:
-            critical_episode_21 = i_episode
-            first_time_right_larger = True
 
         if current_env_windy:
             # Track Q[24] for all actions and plot
@@ -239,6 +224,9 @@ def td_control(env, num_episodes, step_size):
             q_b.append([Q[24][2], Q[25][2], Q[31][2], Q[32][2]])
             q_l.append([Q[24][3], Q[25][3], Q[31][3], Q[32][3]])
         else:
+            if Q[21][1] > Q[21][3] and Q[21][1] > Q[21][0] and not first_time_right_larger:
+                critical_episode_21 = i_episode
+                first_time_right_larger = True
             # Track Q[21] for all actions and plot
             q_u.append([Q[21][0], Q[9][0]])
             q_r.append([Q[21][1], Q[9][1]])
@@ -281,13 +269,13 @@ print('visitation to 21 aft:', critical_states_update_order[critical_index_9:].c
 print('Q(21, RIGHT) > Q(21, UP) first appears at ep:', critical_episode_21)
 print('Time used: ', end - start)
 print("Average number of times the agent has revisited states",
-      revisits,
       sum(revisits) / len(revisits))
 
 if current_env_windy:
     x = [i for i in range(1, 1 + len(q_u))]
     # first pic
     fig, axs = plt.subplots(2, 2)
+    pl.subplots_adjust(hspace=.3)
     axs[0, 0].plot(x, np.array(np.array(q_u)[:, 0]) - np.array(np.array(q_r)[:, 0]))
     axs[0, 0].set_title('Q(24, u) - Q(24, r) (Soph.)')
     axs[0, 1].plot(x, np.array(np.array(q_u)[:, 1]) - np.array(np.array(q_b)[:, 1]))
@@ -301,6 +289,7 @@ if current_env_windy:
 
     # second pic
     fig, axs = plt.subplots(2, 2)
+    pl.subplots_adjust(hspace=.3)
     axs[0, 0].plot(x, np.array(q_u)[:, 0], label='u')
     axs[0, 0].plot(x, np.array(q_r)[:, 0], label='r')
     axs[0, 0].plot(x, np.array(q_b)[:, 0], label='b')

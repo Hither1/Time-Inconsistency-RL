@@ -1,5 +1,5 @@
 """
-Created on Mon Feb 2
+Created on 7 May, 2021
 
 @author: Huangyuan
 
@@ -7,8 +7,8 @@ Policy ---> agent in original paper
 
 """
 
-#from envs.DoughVeg_gridworld import GridworldEnv
-from envs.DoughVeg_windy import GridworldEnv
+from envs.DoughVeg_gridworld import GridworldEnv
+#from envs.DoughVeg_windy import GridworldEnv
 import numpy as np
 import pandas as pd
 import sys
@@ -18,13 +18,13 @@ from scipy.special import softmax
 import time
 import pylab as pl
 
-#current_env_windy = False
-current_env_windy = True  # Change between normal/windy gridworlds
+current_env_windy = False
+#current_env_windy = True  # Change between normal/windy gridworlds
 
 discount_factor = 1
 discounting = 'hyper'  # 'hyper', 'exp'
 init_policy = 'random'  # 'random' 'stable'
-
+penalty = 0.1
 alpha = .35  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 epsilon = .1
 num_episodes = 80000  # 0000
@@ -79,8 +79,7 @@ def td_control(env, num_episodes, step_size):
     discount = auto_discounting()
 
     # Global variables
-    global critical_episode_9, critical_episode_21
-    global revisits
+    global critical_episode_9, critical_episode_21, revisits
 
     # Initialize the expUtility matrix
     # We store the values in the order expUtility[state][delay][utility]
@@ -98,7 +97,7 @@ def td_control(env, num_episodes, step_size):
     agent = make_policy(expUtility, alpha)  # , env.action_space.n)
 
     for i_episode in range(1, num_episodes + 1):
-        states = set({})  # keep a set of states we already visited
+        states = set({}) # keep a set of states we already visited
 
 
         # Print out which episode we're on, useful for debugging.
@@ -110,11 +109,10 @@ def td_control(env, num_episodes, step_size):
         # An episode is an array of (state, action, reward) tuples
         episode = []
         state = env.reset()
+        #state = 21
 
         if is_wall(state):
             continue
-
-        print_trajectory = False
 
         current_revisit = 0
         for t in range(100):
@@ -140,36 +138,13 @@ def td_control(env, num_episodes, step_size):
             # Q(s,a) = Q(s,a) + α( r + γmaxa' Q(s',a') - Q(s,a) )
 
             # Do the computation
-            u = discount(t) * Utility(state)
+            u = discount(t) * (Utility(state) + (-1) * penalty)
             expectation = np.dot(expUtility[next_state][t + 1],
                                  softmax(expUtility[next_state][t + 1] * alpha).T)
 
 
             expUtility[state][t][action] = u + expectation
 
-            if state == 25 and t == 0 and action == 1:
-                print_trajectory = True
-
-                print('----')
-                print('s:', state)
-                print('d:', t)
-                print('a:', action)
-
-                print('probs:', probs)
-
-                print('next_state:', next_state)
-                print('reward:', reward)
-                print('done:', done)
-                print('u:', u)
-                print('expectation:', expectation)
-
-                print('t+1', t+1)
-                for a_ in range(4):
-                    print('a_:', a_)
-                    print('expUtility[next_state]', [expUtility[next_state][d_][a_] for d_ in expUtility[next_state].keys()])
-
-            revisits.append(current_revisit)
-            # if final state
             if done:
                 break
             state = next_state  # update to the next state
@@ -181,7 +156,6 @@ def td_control(env, num_episodes, step_size):
 
                 # count_9 += 1
 
-                curr_policy = np.argmax(agent(state))
                 curr_Q = expUtility[state][0]  # delay = 0
 
             # if state == 21 and action == 1: # check for when the change to SPE is reflected at 21
@@ -190,7 +164,7 @@ def td_control(env, num_episodes, step_size):
                 if critical_episode_21 == 0:  # update the episode in which we reach state 21
                     critical_episode_21 = i_episode - 1
 
-
+        revisits.append(current_revisit)
 
         if current_env_windy:
             # Track Q[24] for all actions and plot
@@ -227,15 +201,6 @@ np.random.seed(0)
 start = time.time()
 expUtility = td_control(env, num_episodes, step_size=0.5)
 end = time.time()
-
-
-
-
-print("[9][d][0]")
-print([expUtility[9][d][0] for d in expUtility[9].keys()])
-
-print("[9][d][1]")
-print([expUtility[9][d][1] for d in expUtility[9].keys()])
 
 # ------------------------------------------------------------------------------------------------
 
@@ -302,10 +267,11 @@ else:
     x = [i for i in range(1, 1 + len(expu_u))]
     # first pic
     fig, axs = plt.subplots(1, 2)
+    #pl.subplots_adjust(hspace=.3)
     axs[0].plot(x, np.array(expu_u)[:, 0] - np.array(expu_r)[:, 0])
-    axs[0].set_title('Difference Q(21, u) - Q(21, r) (Soph.)')
+    axs[0].set_title('Diff Q(21, u) - Q(21, r) (Soph.)')
     axs[1].plot(x, np.array(expu_l)[:, 1] - np.array(expu_u)[:, 1])
-    axs[1].set_title('Difference Q(9, l) - Q(9, u) (Soph.)')
+    axs[1].set_title('Diff Q(9, l) - Q(9, u) (Soph.)')
     fig.show()
 
     # second pic

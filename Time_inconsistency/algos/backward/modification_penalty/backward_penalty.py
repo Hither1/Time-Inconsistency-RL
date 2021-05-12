@@ -19,8 +19,8 @@ import pandas as pd
 import sys
 from collections import defaultdict
 import matplotlib.pyplot as plt
-from scipy.special import softmax
 import time
+import pylab as pl
 
 current_env_windy = False  # Change between normal/windy gridworlds
 
@@ -28,9 +28,9 @@ discount_factor = 1
 discounting = 'hyper'  # 'hyper', 'exp'
 init_policy = 'random'  # 'random' 'stable'
 
-alpha = .6  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
+alpha = .35  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 epsilon = .1
-num_episodes = 100000  # 0000
+num_episodes = 60000  # 0000
 penalty = 0.1
 
 env = GridworldEnv()
@@ -106,7 +106,14 @@ def td_control(env, num_episodes, step_size):
     f = defaultdict(lambda: defaultdict(lambda: np.zeros(env.action_space.n)))
     # h[m][n][state][action], m is the time when the reward happened, n is the time at which we take expectation
     h = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: np.zeros(env.action_space.n))))
+    for m in range(100):
+        for n in range(100):
+            for s in range(24):
+                for a in range(env.action_space.n):
+                    h[m][n][s][a] = -1*penalty
 
+    print("Random checking initial values")
+    print(h[3][0][11][0])
     # Take the Utility function from reward function of the environment
     # Utility = env.copy_reward_fn
     agent = make_policy(Q, epsilon, env.action_space.n)
@@ -155,16 +162,13 @@ def td_control(env, num_episodes, step_size):
             next_state, reward, done, _ = env.step(action)
 
             # for each m, update all n that n <= t
-            for n in range(0, t):
-                h[t][n][state][action] = -1 * penalty
+            #for n in range(0, t):
+             #   h[t][n][state][action] = -1 * penalty
 
             if next_state != state:
                 episode.append((state, action, reward))
             # if final state
             if done:
-                print("current", state)
-                print("next", next_state)
-                print("Ending state", state)
                 if current_env_windy:
                     if next_state == 4:
                         episode.append((next_state, np.argmax(Q[state]), 6))
@@ -182,8 +186,8 @@ def td_control(env, num_episodes, step_size):
         revisits.append(current_revisit)
         # Offline update, backward
         # 1.
-        for a in range(env.action_space.n):
-            h[len(episode) - 1][len(episode) - 1][next_state][a] = -1 * penalty
+        #for a in range(env.action_space.n):
+            #h[len(episode) - 1][len(episode) - 1][next_state][a] = -1 * penalty
         # Initialize the boundary values for f
         if current_env_windy:
             for a in range(env.action_space.n):
@@ -224,11 +228,13 @@ def td_control(env, num_episodes, step_size):
             # Update h factor(s)
             for m in range(t + 1, len(episode)):
                 h[m][t][s][a] = max(h[m][t + 1][next_state]) / discount(m - (t + 1)) * discount(m - t)
+                print("m, t, s, a, next_state", m, t, s, a, next_state)
+                print("h[m][t][s]", h[m][t][s])
+                print("h[m][t][s][a]", h[m][t][s][a])
+                if h[m][t][s][a] >= 0:
+                    print("h[m][t+1][next_state]")
+                    print(h[m][t+1][next_state])
 
-            print("len of episode", len(episode))
-            print(f[len(episode) - 1][2], f[len(episode) - 1][8])
-            print("f[t][s][a]", f[t][s][a])
-            print("Q next state", max(Q[next_state]), "where next state is", next_state)
 
             # Update Q
             # Q[s][a] = max(Q[next_state]) - (
@@ -239,12 +245,12 @@ def td_control(env, num_episodes, step_size):
                         [max(h[m][t + 1][next_state]) for m in range(t + 1, len(episode))]) - sum(
                         [h[m][t][s][a] for m in range(t + 1, len(episode))])) - Q[s][a])
             # Debug
-            if sum([max(h[m][t + 1][next_state]) for m in range(t + 1, len(episode))]) - sum(
-                    [h[m][t][s][a] for m in range(t + 1, len(episode))]) > 0:
-                print("Checking the sign of the H adjustment term")
-                print(sum([max(h[m][t + 1][next_state]) for m in range(t + 1, len(episode))]) - sum(
-                    [h[m][t][s][a] for m in range(t + 1, len(episode))]))
-            print("Q[s][a], s, a", Q[s][a], s, a)
+            #if sum([max(h[m][t + 1][next_state]) for m in range(t + 1, len(episode))]) - sum(
+               #     [h[m][t][s][a] for m in range(t + 1, len(episode))]) > 0:
+                #print("Checking the sign of the H adjustment term")
+                #print(sum([max(h[m][t + 1][next_state]) for m in range(t + 1, len(episode))]) - sum(
+                #    [h[m][t][s][a] for m in range(t + 1, len(episode))]))
+
 
         if Q[21][1] >= Q[21][3] and Q[21][1] >= Q[21][0] and not first_time_right_larger:
             critical_episode_21 = i_episode
@@ -264,9 +270,6 @@ def td_control(env, num_episodes, step_size):
             q_l.append([Q[21][3], Q[9][3]])
 
     return Q
-
-
-# def calculate_expectation(f, t, s):
 
 
 # Critical to check how sensitive is relevant states (i.e. 13, 17, 21) to sudden deviation at 9
@@ -299,20 +302,19 @@ print('EPSILON:', epsilon)
 print('POLICY INIT:', init_policy)
 print('DISCOUNTING:', discounting)
 print('-----')
-print('(9, UP) first appears at ep:', critical_episode_9)
 print('visitation to 21 aft:', critical_states_update_order[critical_index_9:].count(21))
 
 print('Q(21, RIGHT) > Q(21, UP) first appears at ep:', critical_episode_21)
 print('Time used: ', end - start)
 
 print("Average number of times the agent has revisited states",
-      revisits,
       sum(revisits) / len(revisits))
 
 if current_env_windy:
     x = [i for i in range(1, 1 + len(q_u))]
     # first pic
     fig, axs = plt.subplots(2, 2)
+    pl.subplots_adjust(hspace=.3)
     axs[0, 0].plot(x, np.array(np.array(q_u)[:, 0]) - np.array(np.array(q_r)[:, 0]))
     axs[0, 0].set_title('Q(24, u) - Q(24, r) (Soph.)')
     axs[0, 1].plot(x, np.array(np.array(q_u)[:, 1]) - np.array(np.array(q_b)[:, 1]))
@@ -326,6 +328,7 @@ if current_env_windy:
 
     # second pic
     fig, axs = plt.subplots(2, 2)
+    pl.subplots_adjust(hspace=.3)
     axs[0, 0].plot(x, np.array(q_u)[:, 0], label='u')
     axs[0, 0].plot(x, np.array(q_r)[:, 0], label='r')
     axs[0, 0].plot(x, np.array(q_b)[:, 0], label='b')
@@ -358,8 +361,7 @@ else:
     x = [i for i in range(1, 1 + len(q_u))]
     # first pic
     fig, axs = plt.subplots(1, 2)
-    print("Final Q_u")
-    # print(q_u)
+
     axs[0].plot(x, np.array(q_u)[:, 0] - np.array(q_r)[:, 0])
     axs[0].set_title('Difference Q(21, u) - Q(21, r) (Soph.)')
     axs[1].plot(x, np.array(q_l)[:, 1] - np.array(q_u)[:, 1])
@@ -370,9 +372,13 @@ else:
     # second pic
     fig, axs = plt.subplots(1, 2)
     axs[0].plot(x, np.array(q_u)[:, 0], label='u')
+    print("(21, up)", np.array(q_u)[:, 0][-1])
     axs[0].plot(x, np.array(q_r)[:, 0], label='r')
+    print("(21, right)", np.array(q_r)[:, 0][-1])
     axs[0].plot(x, np.array(q_b)[:, 0], label='b')
+    print("(21, below)", np.array(q_b)[:, 0][-1])
     axs[0].plot(x, np.array(q_l)[:, 0], label='l')
+    print("(21, left)", np.array(q_l)[:, 0][-1])
     axs[0].set_title('Q(s=21) Soph.: Gridworld')
     axs[0].legend()
     axs[1].plot(x, np.array(q_u)[:, 1], label='u')
