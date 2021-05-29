@@ -7,12 +7,12 @@ sys.path.append("")
 from collections import defaultdict
 from envs.DoughVeg_gridworld import GridworldEnv
 
-discount_factor = 0.01
+discount_factor = 1
 discounting = 'hyper' #'hyper', 'exp'
 init_policy = 'random' #'random' 'stable'
 
-epsilon = .3
-num_episodes = 50000 #0000
+epsilon = .2
+num_episodes = 20000 #0000
     
 env = GridworldEnv()
 
@@ -75,7 +75,7 @@ def mc_control_epsilon_greedy(env, num_episodes, discount_factor, epsilon):
     """
     
     global critical_states_update_order, critical_index_9, critical_episode_9, critical_index_21, critical_episode_21
-    global Q_correction_21, Q_21_u, Q_21_r, Q_21_b, Q_21_l, Q_9_u, Q_9_r, Q_9_b, Q_9_l
+    global q_u, q_r, q_b, q_l
     
     returns_sum = defaultdict(float)
     returns_count = defaultdict(float)
@@ -101,10 +101,9 @@ def mc_control_epsilon_greedy(env, num_episodes, discount_factor, epsilon):
 
         episode = []
         state = env.reset() #s0 is randomized uniformly
-        
-        if is_wall(state):
-            #print('init on wall, skip')
-            continue
+
+        while is_wall(state) or state == 2 or state == 8:
+            state = env.reset()
         
         # Asynchronous kind
         s0 = state
@@ -210,28 +209,18 @@ def mc_control_epsilon_greedy(env, num_episodes, discount_factor, epsilon):
                 
                 curr_policy = np.argmax(policy(state))
                 curr_Q = Q[state]
-                print('curr_policy:', curr_policy)
-                print('curr_Q[21]:', curr_Q)
-                
-                print('G:', G) # prolly need to update from back?
                 
                 print('trajectory aft 21:', episode[first_occurence_idx:])
                 
                 print('--------------')
             
         # Track Q[21] for all actions and plot
-        Q_21_u += [Q[21][0]]
-        Q_21_r += [Q[21][1]]
-        Q_21_b += [Q[21][2]]
-        Q_21_l += [Q[21][3]]
-
-        # Track Q[9] for all actions and plot
-        Q_9_u += [Q[9][0]]
-        Q_9_r += [Q[9][1]]
-        Q_9_b += [Q[9][2]]
-        Q_9_l += [Q[9][3]]
+        q_u.append([Q[21][0], Q[9][0]])
+        q_r.append([Q[21][1], Q[9][1]])
+        q_b.append([Q[21][2], Q[9][2]])
+        q_l.append([Q[21][3], Q[9][3]])
         
-    return Q, policy
+    return Q
 
 # Critical to check how sensitive is relevant states (i.e. 13, 17, 21) to sudden deviation at 9
 critical_states_update_order = []
@@ -241,18 +230,44 @@ critical_index_21 = 0
 critical_episode_21 = 0
 
 Q_correction_21 = []
-Q_21_u = []
-Q_21_r = []
-Q_21_b = []
-Q_21_l = []
-#
-Q_9_u = []
-Q_9_r = []
-Q_9_b = []
-Q_9_l = []
-np.random.seed(0)
-Q, policy = mc_control_epsilon_greedy(env, num_episodes, discount_factor, epsilon)
 
+np.random.seed(0)
+#Q, policy = mc_control_epsilon_greedy(env, num_episodes, discount_factor, epsilon)
+q_u_s = []
+q_r_s = []
+q_b_s = []
+q_l_s = []
+for _ in range(10):
+    revisits = []
+    q_correction_21 = []
+    q_u = []
+    q_r = []
+    q_b = []
+    q_l = []
+    Q = mc_control_epsilon_greedy(env, num_episodes, discount_factor, epsilon)
+    q_u_s.append(q_u)
+    q_r_s.append(q_r)
+    q_b_s.append(q_b)
+    q_l_s.append(q_l)
+
+q_u_s = np.array(q_u_s)
+q_r_s = np.array(q_r_s)
+q_b_s = np.array(q_b_s)
+q_l_s = np.array(q_l_s)
+
+final_q_u = []
+final_q_r = []
+final_q_b = []
+final_q_l = []
+for i in range(num_episodes):
+    final_q_u.append([np.mean(q_u_s[:, i, 0]), np.std(q_u_s[:, i, 0]), np.mean(q_u_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
+    final_q_r.append([np.mean(q_r_s[:, i, 0]), np.std(q_r_s[:, i, 0]), np.mean(q_r_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
+    final_q_b.append([np.mean(q_b_s[:, i, 0]), np.std(q_b_s[:, i, 0]), np.mean(q_b_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
+    final_q_l.append([np.mean(q_l_s[:, i, 0]), np.std(q_l_s[:, i, 0]), np.mean(q_l_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
+final_q_u = np.array(final_q_u)
+final_q_r = np.array(final_q_r)
+final_q_b = np.array(final_q_b)
+final_q_l = np.array(final_q_l)
 #------------------------------------------------------------------------------------------------
 
 '''Checking criticals'''
@@ -265,32 +280,58 @@ print('visitation to 21 aft:', critical_states_update_order[critical_index_9:].c
 #print('(21, RIGHT) first appears at ep:', critical_episode_21)
 print('Q(21, RIGHT) > Q(21, UP) first appears at ep:', critical_episode_21)
 
-x = [i for i in range(1, 1 + len(Q_21_u))]
+print("Final Best Actions:")
+nr = env.shape[0]
+nc = env.shape[1]
+for r_ in range(nr):
+    row = []
+    for c_ in range(nc):
+        row.append(np.argmax(Q[r_ * nc + c_]))
+    print(row)
+# Graphs
+x = [i for i in range(1, 1 + len(q_u))]
+# first pic
+fig, axs = plt.subplots(1, 2)
+print("Final Q_u")
+# print(q_u)
+axs[0].plot(x, final_q_u[:, 0] - final_q_r[:, 0])
+axs[0].set_title('Difference Q(21, u) - Q(21, r)')
+axs[1].plot(x, final_q_l[:, 2] - final_q_u[:, 2])
+axs[1].set_title('Difference Q(9, l) - Q(9, u)')
+#MC: \epsilon-greedy (\epsilon = .2)
+fig.suptitle('MC: \u03B5-greedy' + ' (\u03B5=' + str(epsilon)+')')
+fig.show()
 
-plt.figure()
-plt.plot(x, np.array(Q_21_u) - np.array(Q_21_r))
-plt.title("On-policy MC Control: (u - r)")
-plt.show()
+# second pic
+fig, axs = plt.subplots(1, 2)
+axs[0].plot(x, final_q_u[:, 0], label='u')
+axs[0].fill_between(x, final_q_u[:, 0] - final_q_u[:, 1], final_q_u[:, 0] + final_q_u[:, 1], alpha=0.2)
+print("(21, up)", np.array(q_u)[:, 0][-1])
+axs[0].plot(x, final_q_r[:, 0], label='r')
+axs[0].fill_between(x, final_q_r[:, 0] - final_q_r[:, 1], final_q_r[:, 0] + final_q_r[:, 1], alpha=0.2)
+print("(21, right)", np.array(q_r)[:, 0][-1])
+axs[0].plot(x, final_q_b[:, 0], label='b')
+axs[0].fill_between(x, final_q_b[:, 0] - final_q_b[:, 1], final_q_b[:, 0] + final_q_b[:, 1], alpha=0.2)
+print("(21, below)", np.array(q_b)[:, 0][-1])
+axs[0].plot(x, final_q_l[:, 0], label='l')
+axs[0].fill_between(x, final_q_l[:, 0] - final_q_l[:, 1], final_q_l[:, 0] + final_q_l[:, 1], alpha=0.2)
+print("(21, left)", np.array(q_l)[:, 0][-1])
+axs[0].set_title('Q(s=21) Gridworld')
+axs[0].legend()
 
-plt.figure()
-plt.plot(x, Q_21_u, label = 'u')
-plt.plot(x, Q_21_r, label = 'r')
-plt.plot(x, Q_21_b, label = 'b')
-plt.plot(x, Q_21_l, label = 'l')
+axs[1].plot(x, final_q_u[:, 2], label='u')
+axs[1].fill_between(x, final_q_u[:, 2] - final_q_u[:, 3], final_q_u[:, 2] + final_q_u[:, 3], alpha=0.2)
+axs[1].plot(x, final_q_r[:, 2], label='r')
+axs[1].fill_between(x, final_q_r[:, 2] - final_q_r[:, 3], final_q_r[:, 2] + final_q_r[:, 3], alpha=0.2)
+axs[1].plot(x, final_q_b[:, 2], label='b')
+axs[1].fill_between(x, final_q_b[:, 2] - final_q_b[:, 3], final_q_b[:, 2] + final_q_b[:, 3], alpha=0.2)
+axs[1].plot(x, final_q_l[:, 2], label='l')
+axs[1].fill_between(x, final_q_l[:, 2] - final_q_l[:, 3], final_q_l[:, 2] + final_q_l[:, 3], alpha=0.2)
+axs[1].set_title('Q(s=9) Gridworld')
 plt.legend()
-plt.title("On-policy MC Control: Q_21")
-plt.show()
-sum = Q_21_u[len(Q_21_u)-1] + Q_21_r[len(Q_21_r)-1] + Q_21_b[len(Q_21_b)-1] + Q_21_l[len(Q_21_l)-1]
-print("u " + str(Q_21_u[len(Q_21_u)-1]) + " prob " + str(Q_21_u[len(Q_21_u)-1] / sum))
-print("r " + str(Q_21_r[len(Q_21_r)-1]) + " prob " + str(Q_21_r[len(Q_21_r)-1] / sum))
-print("b " + str(Q_21_b[len(Q_21_b)-1]) + " prob " + str(Q_21_b[len(Q_21_b)-1] / sum))
-print("l " + str(Q_21_l[len(Q_21_l)-1]) + " prob " + str(Q_21_l[len(Q_21_l)-1] / sum))
+fig.suptitle('MC: \u03B5-greedy' + ' (\u03B5=' + str(epsilon)+')')
+fig.show()
 
-sum = Q_9_u[len(Q_9_u)-1] + Q_9_r[len(Q_9_r)-1] + Q_9_b[len(Q_9_b)-1] + Q_9_l[len(Q_9_l)-1]
-print("u " + str(Q_9_u[len(Q_9_u)-1]) + " prob " + str(Q_9_u[len(Q_9_u)-1] / sum))
-print("r " + str(Q_9_r[len(Q_9_r)-1]) + " prob " + str(Q_9_r[len(Q_9_r)-1] / sum))
-print("b " + str(Q_9_b[len(Q_9_b)-1]) + " prob " + str(Q_9_b[len(Q_9_b)-1] / sum))
-print("l " + str(Q_9_l[len(Q_9_l)-1]) + " prob " + str(Q_9_l[len(Q_9_l)-1] / sum))
 
 '''Computing V*(s)'''
 V_estimate = defaultdict(float)
@@ -302,7 +343,7 @@ for state, actions in Q.items():
 # Check any scaling issue
 avg_V_est = np.average([V_estimate[s] for s in V_estimate.keys()])
 
-'''Computing real \pi*-driven-trajectory values R(\tau)'''
+'''Computing real \pi*-driven-trajectory values R(\tau)
 V_realized = defaultdict(float)
 V_error = defaultdict(float)
 discount = auto_discounting(discount_factor)
@@ -342,19 +383,15 @@ for s0 in range(24):
     V_error[s0] = Total_Reward - V_estimate[s0]
 
 # Check any scaling issue
-avg_V_real = np.average([V_realized[s] for s in V_realized.keys()])
+avg_V_real = np.average([V_realized[s] for s in V_realized.keys()])'''
 
-''' Results'''
+''' Results
 print('DISCOUNTING:', discounting)
 print('sq_error of value_estimate:', V_error)
 print('sum_of_sq_error:', sum([V_error[s]**2 for s in V_error.keys()]))
 print('averaged values:', avg_V_real)
+'''
 
-'''Plot error each episode - see improvement in errors'''
-
-# Hypothesis: THE LONGER THE TRAJECTORY 
-# -> THE LARGER THE POSSIBILITY OF INCLUDING UNSTABLE CONTINUATION-TRAJECTORY 
-# -> THE WORST THE ERROR DEVIATION R(\tau(s)) - V(s)
 
 
 
