@@ -16,6 +16,14 @@ In this part, we describe how to implement the environments.
 ### 2.1 Simple Gridworld
 Our devise an gridworld environment as shown in the following graph:
 ![](figs/envs/gridworld.png)
+
+    o  o  V  o
+    o  o  X  o
+    D  o  X  o
+    o  o  X  o
+    o  o  X  o
+    o  S  o  o
+    
 ![](figs/envs/gridworld_with_traj.png)
 ### 2.2 Windy Gridworld
 
