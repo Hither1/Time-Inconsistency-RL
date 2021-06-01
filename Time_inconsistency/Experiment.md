@@ -1,14 +1,17 @@
 # Experiment Instructions
 ### This file intends to provide detailed instructions on how to reproduce the experiments in our [paper]().
-The main setup of the experiments consists of two parts. The first is algorithms, and the second is the environment. We also 
+The main setup of the experiments consists of two parts. The first is algorithms, and the second is the environment. We also provide an explanation on how to collect the result data.
 
 ## 1. Algorithms
-We
+We have used 3 algorithms in this paper. The Vanilla method, _i.e._ Monte Carlo, and the recursive methods, _i.e._, the Soph-EU-Agent and the E. The pseudo-code of the 3 algorithms are included in the Appendix A of our paper.
+
 ### 1.1 MC
+For this method
 
 ### 1.2 Soph-EU-Agent
+This is the method that we refer to as 'forward'.
 
-### 1.3 Backward 
+### 1.3 Backward Equilbrium
 
 ## 2. Environment
 In this part, we describe how to implement the environments.
