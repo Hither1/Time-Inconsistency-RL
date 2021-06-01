@@ -6,12 +6,14 @@ The main setup of the experiments consists of two parts. The first is algorithms
 We have used 3 algorithms in this paper. The Vanilla method, _i.e._ Monte Carlo, and the recursive methods, _i.e._, the Soph-EU-Agent and the E. The pseudo-code of the 3 algorithms are included in the Appendix A of our paper.
 
 ### 1.1 MC
-For this method
+For this method, we modify the standard textbook implementation of on-policy MC method to use hyperbolic discounting.
 
-### 1.2 Soph-EU-Agent
-This is the method that we refer to as 'forward'.
+### 1.2 Soph-EU-Agent (Forward)
+This is the method that we refer to as 'forward'. 
 
-### 1.3 Backward Equilbrium
+### 1.3 Equilbrium Q-Iteration (Backward)
+This is the method that we refer to as 'backward'.
+
 
 ## 2. Environment
 In this part, we describe how to implement the environments.
@@ -20,9 +22,11 @@ In this part, we describe how to implement the environments.
 Our devise an gridworld environment as shown in the following graph:
 ![](figs/envs/gridworld.png)
 
-    o  o  V  o
+In the code, we implement the gridworld as shown by the following: 
+
+    o  o  S  o
     o  o  X  o
-    D  o  X  o
+    M  o  X  o
     o  o  X  o
     o  o  X  o
     o  S  o  o
