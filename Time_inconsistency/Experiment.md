@@ -23,7 +23,7 @@ Our devise an gridworld environment as shown in the following graph:
 
 
 <div>
-<img src="figs/envs/gridworld.png" width="200" height="300"/>
+<img src="figs/envs/gridworld.png" width="200" height="280"/>
 </div>
 
 In the code, we implement the gridworld as shown by the following: 
@@ -35,9 +35,10 @@ In the code, we implement the gridworld as shown by the following:
     o  o  X  o
     o  S  o  o
     
+ where M: Moon, S: Sun, X: Wall, S: Start/Home
 
 <div>
-<img src="figs/envs/gridworld_with_traj.png" width="300" height="300"/>
+<img src="figs/envs/gridworld_with_traj.png" width="300" height="280"/>
 </div>
 
 ### 2.2 Windy Gridworld
