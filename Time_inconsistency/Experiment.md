@@ -9,12 +9,21 @@ We have used 3 algorithms in this paper. The Vanilla method, _i.e._ Monte Carlo,
 For this method, we modify the standard textbook implementation of on-policy MC method to use hyperbolic discounting.
 
 ### 1.2 Soph-EU-Agent (Forward)
-This is the method that we refer to as 'forward'. 
+This is the method that we refer to as 'forward update'. 
 
+For the initialization of this algorithm, we initialize `ExpectedUtility` as a dictionary with 3-layer key. The 3 layers of keys are state `s`, delay `d` and action `a`, respectively.
+
+#### 1.3.1 Adding Penalty
+In order to 
 
 
 ### 1.3 Equilbrium Q-Iteration (Backward)
-This is the method that we refer to as 'backward'.
+This is the method that we refer to as 'backward update'. 
+
+We initialize `f` as a dictionary with 3-layer key. The 3 layers of keys are current time `t`, state `s` and action `a` respectively.
+
+#### 1.3.1 Adding Penalty
+In order to implement the penalty, we need another adjustment function, which is implemented as a 4-layer key. Now, the 4 layers of keys are 
 
 
 
@@ -23,7 +32,7 @@ In this part, we describe how to implement the environments.
 
 ### 2.1 Simple Gridworld
 Our devise an gridworld environment as shown in the following graph:
-
+By inheriting from the , you can just specific the width and height of the grid, and the states will be automatically indexed as shown in the following graph:
 
 <div>
 <img src="figs/envs/gridworld.png" width="200" height="280"/>
@@ -44,16 +53,21 @@ In the code, we implement the gridworld as shown by the following:
 <img src="figs/envs/gridworld_with_traj.png" width="300" height="280"/>
 </div>
 
-### 2.2 Windy Gridworld
+### ~~2.2 Windy Gridworld~~
+
+
+
 
 
 ## 3. Result Collection
 
 ### 3.1 Q/Expected Utility Values
-Mean and Std.dev
+We mainly measure the Q or Expected Utility values at S
+
+Mean and Std.dev (standard deviation)
 
 ### 3.2 Number of Revisits
 
 The number of **Revisits** is a new metric that we defined in Section 4. to serve as a measure of efficiency for the algorithms.
 
-For each epsiode, we use a set `{}` to keep track of the states 
+For each epsiode, we use a set `{}` to keep track of the states that have been visited in the current episode.
