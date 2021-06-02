@@ -3,27 +3,33 @@
 The main setup of the experiments consists of two parts. The first is algorithms, and the second is the environment. We also provide an explanation on how to collect the result data.
 
 ## 1. Algorithms
-We have used 3 algorithms in this paper. The Vanilla method, _i.e._ Monte Carlo, and the recursive methods, _i.e._, the Soph-EU-Agent and the E. The pseudo-code of the 3 algorithms are included in the Appendix A of our paper. Each of these algorithms is packed into a function, with the inputs to the algorithms being the inputs to the functions.
+We have used 3 algorithms in this paper. The Vanilla method, _i.e._ Monte Carlo, and the recursive methods, _i.e._, the Soph-EU-Agent and the E. The pseudo-code of the 3 algorithms are included in the Appendix A of our paper. Each of these algorithms is packed into a function, with the inputs to the algorithms being the inputs to the functions. 
+
+For all the 3 algorithms, we use 
 
 ### 1.1 MC
-For this method, we modify the standard textbook implementation of on-policy MC method to use hyperbolic discounting.
+For this method, we modify the standard textbook implementation of on-policy MC method to use hyperbolic discounting. The modification is mainly in the way that `G` is updated. In our modified algorithm, we use ```
+d = T - t
+G = 1/(1+k*d) * R_t
+```
 
 ### 1.2 Soph-EU-Agent (Forward)
 This is the method that we refer to as 'forward update'. 
 
-For the initialization of this algorithm, we initialize `ExpectedUtility` as a dictionary with 3-layer key. The 3 layers of keys are state `s`, delay `d` and action `a`, respectively.
+For the initialization of this algorithm, we initialize `Utility`. Since the gridworld is simple that 
+`ExpectedUtility` as a dictionary with 3-layer key. The 3 layers of keys are state `s`, delay `d` and action `a`, respectively.
 
 #### 1.3.1 Adding Penalty
-In order to 
+In order to implement the penalty,
 
 
 ### 1.3 Equilbrium Q-Iteration (Backward)
 This is the method that we refer to as 'backward update'. 
 
-We initialize `f` as a dictionary with 3-layer key. The 3 layers of keys are current time `t`, state `s` and action `a` respectively.
+The `Q` is. We initialize `f` as a dictionary with 3-layer key. The 3 layers of keys are current time `t`, state `s` and action `a` respectively.
 
 #### 1.3.1 Adding Penalty
-In order to implement the penalty, we need another adjustment function, which is implemented as a 4-layer key. Now, the 4 layers of keys are 
+In order to implement the penalty, we need another adjustment function, which is implemented as a 4-layer key. Now, the 4 layers of keys are `m`: the time `n`: current time, state `s` and action `a` 
 
 
 
