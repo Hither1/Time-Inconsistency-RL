@@ -8,7 +8,8 @@ We have used 3 algorithms in this paper. The Vanilla method, _i.e._ Monte Carlo,
 For all the 3 algorithms, we use 
 
 ### 1.1 MC
-For this method, we modify the standard textbook implementation of on-policy MC method to use hyperbolic discounting. The modification is mainly in the way that `G` is updated. In our modified algorithm, we use ```
+For this method, we modify the standard textbook implementation of on-policy MC method to use hyperbolic discounting. The modification is mainly in the way that `G` is updated. In our modified algorithm, we use 
+```
 d = T - t
 G = 1/(1+k*d) * R_t
 ```
