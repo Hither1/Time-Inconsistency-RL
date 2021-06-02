@@ -23,7 +23,7 @@ Our devise an gridworld environment as shown in the following graph:
 
 
 <div>
-<img src="figs/envs/gridworld.png" width="500" height="500"/>
+<img src="figs/envs/gridworld.png" width="200" height="400"/>
 </div>
 
 In the code, we implement the gridworld as shown by the following: 
