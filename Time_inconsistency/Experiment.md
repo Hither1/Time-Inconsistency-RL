@@ -75,12 +75,13 @@ In the code, we implement the gridworld as shown by the following:
 ## 3. Result Collection
 
 ### 3.1 Q/Expected Utility Values
-We mainly measure the Q or Expected Utility values at states 9 and 21. For both cases, we initialize 4 empty lists to store the Q/Expected Utility values at the end of each episode. For Q values, we 
+We mainly measure the Q or Expected Utility values at states 9 and 21. For both cases, we initialize 4 empty lists for the 4 directions of [UP, RIGHT, DOWN, LEFT] to store the Q/Expected Utility values at the end of each episode. For Q values, we record 
 
-For the experiments of Soph-Agent and Equilibrium Q. Mean and Std.dev (standard deviation)
+For the experiments of Soph-Agent and Equilibrium Q, we repeat each experiemnt for 10 times and calculate the mean and std.dev (standard deviation) for . Then in the resulting graphs, we represent the mean as the center line, and represent the std.dev by shaded areas around the center line.
 
 ### 3.2 Number of Revisits
 
 The number of **Revisits** is a new metric that we defined in Section 4. to serve as a measure of efficiency for the algorithms.
 
-For each epsiode, we use a set `{}` to keep track of the states that have been visited in the current episode.
+To calculate this metric, we first . This is to be used for storing all the numbers of _Revisits_ for each episode. 
+For each epsiode, we use a set `{}` to keep track of the states that have been visited in the current episode. Then, throughout each episode, if we encounter a state that we have visited before; otherwise, we add the .
