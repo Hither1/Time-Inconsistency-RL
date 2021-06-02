@@ -22,6 +22,7 @@ In this part, we describe how to implement the environments.
 Our devise an gridworld environment as shown in the following graph:
 
 <div style="width:50%">![Chilling](figs/envs/gridworld.png)</div>
+![image description]('figs/envs/gridworld.png'){width=50px}
 
 In the code, we implement the gridworld as shown by the following: 
 
