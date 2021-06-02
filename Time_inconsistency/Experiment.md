@@ -26,7 +26,7 @@ Our devise an gridworld environment as shown in the following graph:
 ![image description]('figs/envs/gridworld.png'){width=50px}
 
 <div>
-<img src="figs/envs/gridworld.pn" width="500" height="300"/>
+<img src="figs/envs/gridworld.png" width="500" height="300"/>
 </div>
 
 In the code, we implement the gridworld as shown by the following: 
