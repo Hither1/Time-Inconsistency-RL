@@ -29,7 +29,7 @@ In order to implement the penalty, we modify the definition of `Utility` such th
 ### 1.3 Equilbrium Q-Iteration (Backward)
 This is the method that we refer to as 'backward update'. 
 
-The `Q` is. We initialize `f` as a dictionary with 3-layer key. The 3 layers of keys are current time `t`, state `s` and action `a` respectively.
+The `Q` is initialized as a dictionary with 2-layer key, which are state `s` and action `a`. We initialize `f` as a dictionary with 3-layer key. The 3 layers of keys are current time `t`, state `s` and action `a` respectively.
 
 #### 1.3.1 Adding Penalty
 In order to implement the penalty, we need another adjustment function, which is implemented as a 4-layer key. Now, the 4 layers of keys are `m`: the time at which the reward is received, `n`: the current time, state `s` and action `a`. 
@@ -71,9 +71,9 @@ In the code, we implement the gridworld as shown by the following:
 ## 3. Result Collection
 
 ### 3.1 Q/Expected Utility Values
-We mainly measure the Q or Expected Utility values at states 9 and 
+We mainly measure the Q or Expected Utility values at states 9 and 21. For both cases, we initialize 4 empty lists to store the Q/Expected Utility values at the end of each episode. For Q values, we 
 
-Mean and Std.dev (standard deviation)
+For the experiments of Soph-Agent and Equilibrium Q. Mean and Std.dev (standard deviation)
 
 ### 3.2 Number of Revisits
 
