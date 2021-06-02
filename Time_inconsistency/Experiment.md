@@ -20,8 +20,8 @@ In this part, we describe how to implement the environments.
 
 ### 2.1 Simple Gridworld
 Our devise an gridworld environment as shown in the following graph:
-![alt text][figs/envs/gridworld.png]{height=400px width=500px}
-![]( =100x)
+
+<div style="width:50%">![Chilling](figs/envs/gridworld.png)</div>
 
 In the code, we implement the gridworld as shown by the following: 
 
