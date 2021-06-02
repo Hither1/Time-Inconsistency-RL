@@ -5,7 +5,7 @@ The main setup of the experiments consists of two parts. The first is algorithms
 ## 1. Algorithms
 We have used 3 algorithms in this paper. The Vanilla method, _i.e._ Monte Carlo, and the recursive methods, _i.e._, the Soph-EU-Agent and the E. The pseudo-code of the 3 algorithms are included in the Appendix A of our paper. Each of these algorithms is packed into a function, with the inputs to the algorithms being the inputs to the functions. 
 
-For all the 3 algorithms, we use 
+For all the 3 algorithms, we use ε-greedy as the rand
 
 ### 1.1 MC
 For this method, we modify the standard textbook implementation of on-policy MC method to use hyperbolic discounting. The modification is mainly in the way that `G` is updated. In our modified algorithm, we use 
