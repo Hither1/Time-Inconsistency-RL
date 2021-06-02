@@ -20,7 +20,7 @@ In this part, we describe how to implement the environments.
 
 ### 2.1 Simple Gridworld
 Our devise an gridworld environment as shown in the following graph:
-![](figs/envs/gridworld.png =100x70)
+![](figs/envs/gridworld.png)
 
 In the code, we implement the gridworld as shown by the following: 
 
