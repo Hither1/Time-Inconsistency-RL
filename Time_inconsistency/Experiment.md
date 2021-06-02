@@ -17,11 +17,11 @@ G = 1/(1+k*d) * R_t
 ### 1.2 Soph-EU-Agent (Forward)
 This is the method that we refer to as 'forward update'. 
 
-For the initialization of this algorithm, we initialize `Utility`. Since the gridworld is simple that 
+For the initialization of this algorithm, we define `Utility` as a simple dictionary whole value only depends on the state. Since the gridworld is simple that 
 `ExpectedUtility` as a dictionary with 3-layer key. The 3 layers of keys are state `s`, delay `d` and action `a`, respectively.
 
 #### 1.3.1 Adding Penalty
-In order to implement the penalty,
+In order to implement the penalty, we modify the definition of `Utility` such . We leave the value of the goal states unchanged.
 
 
 ### 1.3 Equilbrium Q-Iteration (Backward)
