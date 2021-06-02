@@ -22,6 +22,8 @@ This is the method that we refer to as 'forward update'.
 For the initialization of this algorithm, we define `Utility` as a simple dictionary whole value only depends on the state. Since the gridworld is simple that 
 `ExpectedUtility` as a dictionary with 3-layer key. The 3 layers of keys are state `s`, delay `d` and action `a`, respectively.
 
+Empirically, 35000 episodes is enough for this algorithm to converge on the problem of simple gridworld.
+
 #### 1.3.1 Adding Penalty
 In order to implement the penalty, we modify the definition of `Utility` such that `Utility(s, a) = 0` for any states `s` that is not a goal state. We leave the value of the goal states unchanged.
 
@@ -30,6 +32,8 @@ In order to implement the penalty, we modify the definition of `Utility` such th
 This is the method that we refer to as 'backward update'. 
 
 The `Q` is initialized as a dictionary with 2-layer key, which are state `s` and action `a`. We initialize `f` as a dictionary with 3-layer key. The 3 layers of keys are current time `t`, state `s` and action `a` respectively.
+
+Empirically, 20000 episodes is enough for this algorithm to converge on the problem of simple gridworld.
 
 #### 1.3.1 Adding Penalty
 In order to implement the penalty, we need another adjustment function, which is implemented as a 4-layer key. Now, the 4 layers of keys are `m`: the time at which the reward is received, `n`: the current time, state `s` and action `a`. 
