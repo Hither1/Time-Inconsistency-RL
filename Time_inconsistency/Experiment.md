@@ -46,7 +46,7 @@ In this part, we describe how to implement the environments.
 
 ### 2.1 Simple Gridworld
 Our devise an gridworld environment as shown in the following graph:
-By inheriting from the env of , you can just specify the width and height of the grid, and the states will be automatically indexed as shown in the following graph:
+By inheriting from the DiscretEnv of [gym](https://gym.openai.com/docs/), you can just specify the width and height of the grid, and the states will be automatically indexed as shown in the following graph:
 
 <div>
 <img src="figs/envs/gridworld.png" width="200" height="280"/>
