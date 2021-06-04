@@ -15,12 +15,13 @@ G = 1/(1+k*d) * R_t
 ```
 where `t` is the current time, `T` is the length of the episode, and `R_t` is the reward at time `t`.
 
+Q value is initialized as a 2-layer key dictionary where the keys are state `s` and action `a`. After initializing the `Q` dictionary, you need to set the values at the goal states (`s = 21, 9`) to the value of the reward function.
 
 ### 1.2 Soph-EU-Agent (Forward)
 This is the method that we refer to as 'forward update'. 
 
 For the initialization of this algorithm, we define `Utility` as a simple dictionary whole value only depends on the state. Since the gridworld is simple that 
-`ExpectedUtility` as a dictionary with 3-layer key. The 3 layers of keys are state `s`, delay `d` and action `a`, respectively.
+`ExpectedUtility` as a dictionary with 3-layer key. The 3 layers of keys are state `s`, delay `d` and action `a`, respectively. After initializing the `Q` dictionary, you need to set the values at the goal states (`s = 21, 9`) to the value of the reward function.
 
 Empirically, 35000 episodes is enough for this algorithm to converge on the problem of simple gridworld.
 
@@ -31,7 +32,7 @@ In order to implement the penalty, we modify the definition of `Utility` such th
 ### 1.3 Equilbrium Q-Iteration (Backward)
 This is the method that we refer to as 'backward update'. 
 
-The `Q` is initialized as a dictionary with 2-layer key, which are state `s` and action `a`. We initialize `f` as a dictionary with 3-layer key. The 3 layers of keys are current time `t`, state `s` and action `a` respectively.
+The `Q` is initialized as a dictionary with 2-layer key, which are state `s` and action `a`. We initialize `f` as a dictionary with 3-layer key. The 3 layers of keys are current time `t`, state `s` and action `a` respectively. After initializing the `Q` dictionary, you need to set the values at the goal states (`s = 21, 9`) to the value of the reward function.
 
 Empirically, 20000 episodes is enough for this algorithm to converge on the problem of simple gridworld.
 
@@ -77,7 +78,7 @@ In the code, we implement the gridworld as shown by the following:
 ### 3.1 Q/Expected Utility Values
 We mainly measure the Q or Expected Utility values at states 9 and 21. For both cases, we initialize 4 empty lists for the 4 directions of [UP, RIGHT, DOWN, LEFT](corresponding to `0, 1, 2, 3`) to store the Q/Expected Utility values at the end of each episode. For Q values, we record `Q[s][a]` for `s = 21, 9` and `a = 0, 1, 2, 3` at the end of each episode, and append them to the 4 empty lists prepared earlier.
 
-For the experiments of Soph-Agent and Equilibrium Q, we repeat each experiemnt for 10 times and calculate the mean and std.dev (standard deviation) for . Then in the resulting graphs, we represent the mean as the center line, and represent the std.dev by shaded areas around the center line.
+For the experiments of Soph-Agent and Equilibrium Q, we repeat each experiemnt for 10 times and calculate the mean and std.dev (standard deviation) for the Q/Expected Utility values at each episode. Then in the resulting graphs, we represent the mean as the center line, and represent the std.dev by shaded areas around the center line.
 
 ### 3.2 Number of Revisits
 
