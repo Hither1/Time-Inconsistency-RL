@@ -85,4 +85,4 @@ For the experiments of Soph-Agent and Equilibrium Q, we repeat each experiemnt f
 The number of **Revisits** is a new metric that we defined in Section 4. to serve as a measure of efficiency for the algorithms.
 
 To calculate this metric, we first . This is to be used for storing all the numbers of _Revisits_ for each episode. 
-For each epsiode, we use a set `{}` to keep track of the states that have been visited in the current episode. Then, throughout each episode, if we encounter a state that we have visited before; otherwise, we add the .
+For each epsiode, we use a set `{}` to keep track of the states that have been visited in the current episode. Then, throughout each episode, if we encounter a state that we have visited before; otherwise, we add the state to the set of visited states.
