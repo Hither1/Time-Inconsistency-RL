@@ -75,7 +75,7 @@ In the code, we implement the gridworld as shown by the following:
 ## 3. Result Collection
 
 ### 3.1 Q/Expected Utility Values
-We mainly measure the Q or Expected Utility values at states 9 and 21. For both cases, we initialize 4 empty lists for the 4 directions of [UP, RIGHT, DOWN, LEFT] to store the Q/Expected Utility values at the end of each episode. For Q values, we record 
+We mainly measure the Q or Expected Utility values at states 9 and 21. For both cases, we initialize 4 empty lists for the 4 directions of [UP, RIGHT, DOWN, LEFT](corresponding to `0, 1, 2, 3`) to store the Q/Expected Utility values at the end of each episode. For Q values, we record `Q[s][a]` for `s = 21, 9` and `a = 0, 1, 2, 3` at the end of each episode, and append them to the 4 empty lists prepared earlier.
 
 For the experiments of Soph-Agent and Equilibrium Q, we repeat each experiemnt for 10 times and calculate the mean and std.dev (standard deviation) for . Then in the resulting graphs, we represent the mean as the center line, and represent the std.dev by shaded areas around the center line.
 
