@@ -1,4 +1,4 @@
-# Time Inconsistency in Deep Reinforcement Learning
+# Time Inconsistency in Reinforcement Learning
 
 Temporal Credit Assignment
 
