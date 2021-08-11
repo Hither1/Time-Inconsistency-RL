@@ -20,7 +20,7 @@ import pylab as pl
 
 current_env_windy = False
 #current_env_windy = True  # Change between normal/windy gridworlds
-isSoftmax = False
+isSoftmax = True
 
 discount_factor = 1
 discounting = 'hyper'  # 'hyper', 'exp'
@@ -28,7 +28,7 @@ init_policy = 'random'  # 'random' 'stable'
 
 # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 
-num_episodes = 35000
+num_episodes = 30000
 
 env = GridworldEnv()
 
@@ -51,9 +51,9 @@ def auto_discounting(discount_factor=discount_factor):
         return exp
 
 if isSoftmax:
-    alpha = .3  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
+    alpha = .5  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 else:
-    epsilon = .2
+    epsilon = .28
 
 def make_policy(expUtility, nA, isSoftmax):
     """
@@ -85,7 +85,7 @@ def make_policy(expUtility, nA, isSoftmax):
 
 
 # Hyperbolic Discounted Q-learning (off-policy TD control)
-def td_control(env, num_episodes, isSoftmax):
+def td_control(env, num_episodes, isSoftmax, step_size):
     global expu_correction_21, expu_u, expu_r, expu_b, expu_l
 
     # The type of discounting
@@ -172,7 +172,8 @@ def td_control(env, num_episodes, isSoftmax):
             else:
                 expectation = np.dot(expUtility[next_state][t + 1], agent(next_state).T)
 
-            expUtility[state][t][action] = u + expectation
+            #expUtility[state][t][action] = u + expectation
+            expUtility[state][t][action] = (1 - step_size) * expUtility[state][t][action] + step_size* (u + expectation)
 
 
             if done:
@@ -224,13 +225,13 @@ q_u_s = []
 q_r_s = []
 q_b_s = []
 q_l_s = []
-for _ in range(10):
+for _ in range(5):
     expu_correction_21 = []
     expu_u = []
     expu_r = []
     expu_b = []
     expu_l = []
-    expUtility = td_control(env, num_episodes, isSoftmax=isSoftmax)
+    expUtility = td_control(env, num_episodes, isSoftmax=isSoftmax, step_size=.5)
     q_u_s.append(expu_u)
     q_r_s.append(expu_r)
     q_b_s.append(expu_b)
@@ -379,7 +380,7 @@ else:
     axs[1].set_title('Q(s=9) Soph.: Gridworld')
     plt.legend()
     if isSoftmax:
-        fig.suptitle('Forward: sing Softmax' + ' alpha: ' + str(alpha))
+        fig.suptitle('Forward: using Softmax' + ' alpha: ' + str(alpha))
     else:
         fig.suptitle('Forward: \u03B5-greedy' + ' (\u03B5=' + str(epsilon)+')')
     fig.show()

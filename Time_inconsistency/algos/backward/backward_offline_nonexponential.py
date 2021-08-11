@@ -28,10 +28,10 @@ init_policy = 'random'  # 'random' 'stable'
 
 isSoftmax = False
 if isSoftmax:
-    alpha = 2  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
+    alpha = 3  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 else:
-    epsilon = .2
-num_episodes = 20000  # 0000
+    epsilon = .25
+num_episodes = 32000  # 0000
 
 env = GridworldEnv()
 
@@ -109,14 +109,18 @@ def td_control(env, num_episodes, isSoftmax, step_size):
             Q[8][a] = 10
     # f[n][state][action], n is the time at which we take expectation
     f = defaultdict(lambda: defaultdict(lambda: np.zeros(env.action_space.n)))
-    policy = defaultdict(lambda: np.zeros(env.action_space.n))
 
     # Take the Utility function from reward function of the environment
     # Utility = env.copy_reward_fn
     agent = make_policy(Q, env.action_space.n, isSoftmax=isSoftmax)
+    policy = defaultdict(lambda: 0)
+    for s in env.shape:
+        policy[s] = np.argmax(Q[s])
 
     first_time_right_larger = False
     for i_episode in range(1, num_episodes + 1):
+        print("episode ", i_episode)
+        print(Q[9])
         states = set({})  # keep a set of states we already visited
 
 
@@ -166,31 +170,33 @@ def td_control(env, num_episodes, isSoftmax, step_size):
         revisits.append(current_revisit)
 
         # Offline update, backward
-        # 1. Initialize the boundary values for f
-        if current_env_windy:
-            for a in range(env.action_space.n):
-                if next_state == 4:
-                    f[len(episode) - 1][4][a] = 5
-                    f[len(episode) - 1][10][a] = 0
-                    f[len(episode) - 1][28][a] = 0
-                elif next_state == 10:
-                    f[len(episode) - 1][4][a] = 0
-                    f[len(episode) - 1][10][a] = 3
-                    f[len(episode) - 1][28][a] = 0
-                elif next_state == 28:
-                    f[len(episode) - 1][4][a] = 0
-                    f[len(episode) - 1][10][a] = 0
-                    f[len(episode) - 1][28][a] = 10
-        else:
-            for a in range(env.action_space.n):
-                if next_state == 2:
-                    f[len(episode) - 1][2][a] = 19
-                    f[len(episode) - 1][8][a] = 0
-                elif next_state == 8:
-                    f[len(episode) - 1][2][a] = 0
-                    f[len(episode) - 1][8][a] = 10
+
         # 2. others
         for t in range(len(episode) - 2, -1, -1):
+            # Initialize the boundary values for f
+            if current_env_windy:
+                for a in range(env.action_space.n):
+                    if next_state == 4:
+                        f[len(episode) - 1][4][a] = 5
+                        f[len(episode) - 1][10][a] = 0
+                        f[len(episode) - 1][28][a] = 0
+                    elif next_state == 10:
+                        f[len(episode) - 1][4][a] = 0
+                        f[len(episode) - 1][10][a] = 3
+                        f[len(episode) - 1][28][a] = 0
+                    elif next_state == 28:
+                        f[len(episode) - 1][4][a] = 0
+                        f[len(episode) - 1][10][a] = 0
+                        f[len(episode) - 1][28][a] = 10
+            else:
+                for a in range(env.action_space.n):
+                    if next_state == 2:
+                        f[len(episode) - 1][2][a] = 19
+                        f[len(episode) - 1][8][a] = 0
+                    elif next_state == 8:
+                        f[len(episode) - 1][2][a] = 0
+                        f[len(episode) - 1][8][a] = 10
+
             s, a, r = episode[t]
             next_state, next_action, next_r = episode[t + 1]
             # Update (g, h,) f
@@ -198,26 +204,31 @@ def td_control(env, num_episodes, isSoftmax, step_size):
             # f should be the expected value of all its next states
 
             #f[t][s][a] = max(f[t + 1][next_state]) / discount(len(episode) - 1 - (t + 1)) * discount(
-             #   len(episode) - 1 - t)
+                #len(episode) - 1 - t)
             f[t][s][a] = f[t + 1][next_state][policy[next_state]] / discount(len(episode) - 1 - (t + 1)) * discount(
                    len(episode) - 1 - t)
 
             # Update Q
             # Q[s][a] = max(Q[next_state]) - (
             #         max(f[t+1][next_state]) - f[t][s][a])
-            print("max from f")
-            print(np.argmax(Q[next_state]))
-            print("max from Q")
-            print(np.argmax(f[t + 1][next_state]))
+            #print("max from f")
+            #print(np.argmax(Q[next_state]))
+            #print("max from Q")
+            #print(np.argmax(f[t + 1][next_state]))
             if np.argmax(Q[next_state]) != np.argmax(f[t + 1][next_state]):
                 count += 1
                 print("Count", count)
 
             #Q[s][a] = Q[s][a] + step_size * (max(Q[next_state]) - (
-             #       max(f[t + 1][next_state]) - f[t][s][a]) - Q[s][a])
-            Q[s][a] = Q[s][a]
-            + step_size * (Q[next_state][policy[next_state]] - (f[t+1][next_state][policy[next_state]] - f[t][s][a]) - Q[s][a])
-            policy[s] = np.argmax(Q[s])
+              #      max(f[t + 1][next_state]) - f[t][s][a]) - Q[s][a])
+            Q[s][a] = Q[s][a] + step_size * (max(Q[next_state]) - (
+                    f[t + 1][next_state][policy[next_state]] - f[t][s][a]) - Q[s][a])
+            if Q[s][policy[s]] == max(Q[s]):
+                pass
+            else:
+                policy[s] = np.argmax(Q[s])
+
+
 
         if current_env_windy:
             # Track Q[24] for all actions and plot
@@ -252,14 +263,14 @@ q_u_s = []
 q_r_s = []
 q_b_s = []
 q_l_s = []
-for _ in range(1):
+for _ in range(10):
     revisits = []
     q_correction_21 = []
     q_u = []
     q_r = []
     q_b = []
     q_l = []
-    Q = td_control(env, num_episodes, isSoftmax, step_size=.2)
+    Q = td_control(env, num_episodes, isSoftmax, step_size=.5)
     q_u_s.append(q_u)
     q_r_s.append(q_r)
     q_b_s.append(q_b)

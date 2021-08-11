@@ -11,7 +11,7 @@ discount_factor = 1
 discounting = 'hyper' #'hyper', 'exp'
 init_policy = 'random' #'random' 'stable'
 
-epsilon = .1
+epsilon = .5
 num_episodes = 50000 #0000
     
 env = GridworldEnv()
@@ -282,14 +282,14 @@ for s0 in range(24):
         state = next_state
         
     #Total_Reward = sum([x[2]*(discount_factor**i) for i,x in enumerate(episode)])
-    Total_Reward = sum([x[2]*(discount(i)) for i, x in enumerate(episode)])
+    #Total_Reward = sum([x[2]*(discount(i)) for i, x in enumerate(episode)])
     
     if s0 == 21:
         print(episode)
-        print(Total_Reward)
+
         
-    V_realized[s0] = Total_Reward
-    V_error[s0] = Total_Reward - V_estimate[s0]
+    #V_realized[s0] = Total_Reward
+    #V_error[s0] = Total_Reward - V_estimate[s0]
 
 # Check any scaling issue
 avg_V_real = np.average([V_realized[s] for s in V_realized.keys()])

@@ -1,7 +1,7 @@
 """
 Created on Mon Feb 2
 
-@author: Huangyuan
+@author: Huangyuan, Su
 
 This script is about
 adding penalty that is constant for each step
@@ -240,9 +240,8 @@ def td_control(env, num_episodes, isSoftmax, step_size):
             #         max(f[t+1][next_state]) - f[t][s][a])
             Q[s][a] = Q[s][a] + step_size * (max(Q[next_state]) - (
                     max(f[t + 1][next_state]) - f[t][s][a])
-                                         + (-1 * penalty) - (sum(
-                        [max(h[m][t + 1][next_state]) for m in range(t + 1, len(episode))]) - sum(
-                        [h[m][t][s][a] for m in range(t + 1, len(episode))])) - Q[s][a])
+                    + (-1 * penalty) - (sum([max(h[m][t + 1][next_state]) for m in range(t + 1, len(episode))]) - sum([h[m][t][s][a] for m in range(t + 1, len(episode))]))
+                    - Q[s][a])
             # Debug
             #if sum([max(h[m][t + 1][next_state]) for m in range(t + 1, len(episode))]) - sum(
                #     [h[m][t][s][a] for m in range(t + 1, len(episode))]) > 0:

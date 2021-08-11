@@ -11,7 +11,7 @@ discount_factor = 1
 discounting = 'hyper' #'hyper', 'exp'
 init_policy = 'random' #'random' 'stable'
 
-epsilon = .2
+epsilon = .25
 num_episodes = 20000 #0000
     
 env = GridworldEnv()
@@ -58,6 +58,7 @@ def make_epsilon_greedy_policy(Q, epsilon, nA):
 
 def mc_control_epsilon_greedy(env, num_episodes, discount_factor, epsilon):
     """
+
     Monte Carlo Control using Epsilon-Greedy policies.
     Finds an optimal epsilon-greedy policy.
     
@@ -83,7 +84,9 @@ def mc_control_epsilon_greedy(env, num_episodes, discount_factor, epsilon):
     # policy is one-to-one to Q: init at UP for each s
     Q = defaultdict(lambda: np.zeros(env.action_space.n))
     policy = make_epsilon_greedy_policy(Q, epsilon, env.action_space.n)
-    
+    for a in range(env.action_space.n):
+        Q[2][a] = 19
+        Q[8][a] = 10
     # Stable policy initialization
     if init_policy == 'stable':
         policy(9)[0] = epsilon/4
@@ -120,31 +123,7 @@ def mc_control_epsilon_greedy(env, num_episodes, discount_factor, epsilon):
                 break
             
             state = next_state
-        
-        '''
-        if s0 in [9, 13, 17, 21]:
-            critical_states_update_order += [s0]
-            
-            print('i_episode:', i_episode)
-            print('s0:', s0)
-            print('episode:', episode)
-            
-            for s in [9, 13, 17, 21]:
-                print('s:', s)
-                print('policy:', np.argmax(policy(s)))
-                print('Q-values:', Q[s])
-            
-                if s == 9 and np.argmax(policy(s)) == 3 and critical_episode_9 == 0:
-                    critical_episode_9 = i_episode - 1
-                    critical_index_9 = len(critical_states_update_order) - 1
-                
-                if s == 21:
-                    Q_correction_21 += [Q[21][0] - Q[21][1]]
-                    
-                    if np.argmax(policy(s)) == 1 and critical_episode_21 == 0:
-                        critical_episode_21 = i_episode - 1
-                        critical_index_21 = len(critical_states_update_order) - 1'''
-            #print('------------------------')
+
             
         # Find all (state, action) pairs we've visited in this episode
         # We convert each state to a tuple so that we can use it as a dict key
@@ -166,22 +145,11 @@ def mc_control_epsilon_greedy(env, num_episodes, discount_factor, epsilon):
             returns_sum[sa_pair] += G
             returns_count[sa_pair] += 1.0
             
-            '''if state == 21:
-                prev_policy = np.argmax(policy(state))
-                prev_Q = Q[state]'''
+
                 
             Q[state][action] = returns_sum[sa_pair] / returns_count[sa_pair]
             
-            '''if state == 21 and Q[state][0] - Q[state][1] < 0:
-                print('prev_policy:', prev_policy)
-                print('prev_Q[21]:', prev_Q)
-                
-                curr_policy = np.argmax(policy(state))
-                curr_Q = Q[state]
-                print('curr_policy:', curr_policy)
-                print('curr_Q[21]:', curr_Q)
-                
-                print('trajectory:', episode)'''
+
             
             if state == 9 and action == 0: # check for possible JUMP at 9 due to noisy policy
                 
@@ -197,7 +165,7 @@ def mc_control_epsilon_greedy(env, num_episodes, discount_factor, epsilon):
                 
                 print('G:', G)
                 
-                print('-----')
+
                 
             #if state == 21 and action == 1: # check for when the change to SPE is reflected at 21
             if state == 21 and Q[21][1] > Q[21][0]:
