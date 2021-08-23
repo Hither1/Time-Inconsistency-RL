@@ -23,6 +23,9 @@ current_env_windy = False  # Change between normal/windy gridworlds
 # current_env_windy = True
 
 discount_factor = 1
+reward_multiplier = 1
+step_size_1 = .6
+step_size_2 = 1
 discounting = 'hyper'  # 'hyper', 'exp'
 init_policy = 'random'  # 'random' 'stable'
 
@@ -30,8 +33,8 @@ isSoftmax = False
 if isSoftmax:
     alpha = 3  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 else:
-    epsilon = .25
-num_episodes = 32000  # 0000
+    epsilon = .2
+num_episodes = 50000  # 0000
 
 env = GridworldEnv()
 
@@ -86,7 +89,7 @@ def make_policy(Q, nA, isSoftmax):
 
 
 # Hyperbolic Discounted Q-learning (off-policy TD control)
-def td_control(env, num_episodes, isSoftmax, step_size):
+def td_control(env, num_episodes, isSoftmax, step_size_1, step_size_2):
     # Global variables
     global q_correction_21, q_u, q_r, q_b, q_l
     global critical_episode_21, revisits
@@ -100,27 +103,25 @@ def td_control(env, num_episodes, isSoftmax, step_size):
     Q = defaultdict(lambda: np.zeros(env.action_space.n))
     if current_env_windy:  # windy gridworld -
         for a in range(env.action_space.n):
-            Q[10][a] = 3
-            Q[28][a] = 10
-            Q[4][a] = 6
+            Q[10][a] = 3 * reward_multiplier
+            Q[28][a] = 10 * reward_multiplier
+            Q[4][a] = 6 * reward_multiplier
     else:
         for a in range(env.action_space.n):
-            Q[2][a] = 19
-            Q[8][a] = 10
-    # f[n][state][action], n is the time at which we take expectation
-    f = defaultdict(lambda: defaultdict(lambda: np.zeros(env.action_space.n)))
+            Q[2][a] = 19 * reward_multiplier
+            Q[8][a] = 10 * reward_multiplier
+
 
     # Take the Utility function from reward function of the environment
     # Utility = env.copy_reward_fn
     agent = make_policy(Q, env.action_space.n, isSoftmax=isSoftmax)
     policy = defaultdict(lambda: 0)
-    for s in env.shape:
-        policy[s] = np.argmax(Q[s])
+
 
     first_time_right_larger = False
+    #f: [t][m][s][a] t is current time, m is time at which the reward is received
+    f = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: np.zeros(env.action_space.n))))
     for i_episode in range(1, num_episodes + 1):
-        print("episode ", i_episode)
-        print(Q[9])
         states = set({})  # keep a set of states we already visited
 
 
@@ -140,6 +141,7 @@ def td_control(env, num_episodes, isSoftmax, step_size):
         current_revisit = 0
         # Sample a new trajectory
         for t in range(100):
+
             if state in states:
                 current_revisit += 1
             else:
@@ -155,78 +157,74 @@ def td_control(env, num_episodes, isSoftmax, step_size):
             if done:
                 if current_env_windy:
                     if next_state == 4:
-                        episode.append((next_state, np.argmax(Q[state]), 6))
+                        episode.append((next_state, np.argmax(Q[state]), 6 * reward_multiplier))
                     elif next_state == 10:
-                        episode.append((next_state, np.argmax(Q[state]), 3))
+                        episode.append((next_state, np.argmax(Q[state]), 3 * reward_multiplier))
                     elif next_state == 28:
-                        episode.append((next_state, np.argmax(Q[state]), 10))
+                        episode.append((next_state, np.argmax(Q[state]), 10 * reward_multiplier))
                 else:
                     if next_state == 2:
-                        episode.append((next_state, np.argmax(Q[state]), 19))
+                        episode.append((next_state, np.argmax(Q[state]), 19 * reward_multiplier))
                     elif next_state == 8:
-                        episode.append((next_state, np.argmax(Q[state]), 10))
+                        episode.append((next_state, np.argmax(Q[state]), 10 * reward_multiplier))
                 break
             state = next_state  # update to the next state
         revisits.append(current_revisit)
 
         # Offline update, backward
-
+        if current_env_windy:
+            for a in range(env.action_space.n):
+                if next_state == 4:
+                    f[len(episode) - 1][4][a] = 5
+                    f[len(episode) - 1][10][a] = 0
+                    f[len(episode) - 1][28][a] = 0
+                elif next_state == 10:
+                    f[len(episode) - 1][4][a] = 0
+                    f[len(episode) - 1][10][a] = 3
+                    f[len(episode) - 1][28][a] = 0
+                elif next_state == 28:
+                    f[len(episode) - 1][4][a] = 0
+                    f[len(episode) - 1][10][a] = 0
+                    f[len(episode) - 1][28][a] = 10
+        else:
+            for a in range(env.action_space.n):
+                if next_state == 2:
+                    f[len(episode) - 1][len(episode) - 1][2][a] = 19 * reward_multiplier
+                    # f[len(episode) - 1][len(episode) - 1][8][a] = 0
+                elif next_state == 8:
+                    # f[len(episode) - 1][len(episode) - 1][2][a] = 0
+                    f[len(episode) - 1][len(episode) - 1][8][a] = 10 * reward_multiplier
         # 2. others
         for t in range(len(episode) - 2, -1, -1):
             # Initialize the boundary values for f
-            if current_env_windy:
-                for a in range(env.action_space.n):
-                    if next_state == 4:
-                        f[len(episode) - 1][4][a] = 5
-                        f[len(episode) - 1][10][a] = 0
-                        f[len(episode) - 1][28][a] = 0
-                    elif next_state == 10:
-                        f[len(episode) - 1][4][a] = 0
-                        f[len(episode) - 1][10][a] = 3
-                        f[len(episode) - 1][28][a] = 0
-                    elif next_state == 28:
-                        f[len(episode) - 1][4][a] = 0
-                        f[len(episode) - 1][10][a] = 0
-                        f[len(episode) - 1][28][a] = 10
-            else:
-                for a in range(env.action_space.n):
-                    if next_state == 2:
-                        f[len(episode) - 1][2][a] = 19
-                        f[len(episode) - 1][8][a] = 0
-                    elif next_state == 8:
-                        f[len(episode) - 1][2][a] = 0
-                        f[len(episode) - 1][8][a] = 10
 
             s, a, r = episode[t]
             next_state, next_action, next_r = episode[t + 1]
             # Update (g, h,) f
             # f[t][s][a] = f[t][s][a] + alpha * discount(len(episode) - t) * (f[t+1][next_state][next_action])
             # f should be the expected value of all its next states
+            for m in range(t+1, len(episode)):
+                f_value = f[t + 1][m][next_state][policy[next_state]] / discount(m - (t + 1)) * discount(m - t)
+                f[t][m][s][a] = f[t][m][s][a] + step_size_2 * (f_value - f[t][m][s][a])
+            print("state ", s, " action ", a)
+            print("time ", t)
+            print("f values ")
+            for m in range(t+1, len(episode)):
+                print("next_state", next_state, " ", Q[next_state])
 
-            #f[t][s][a] = max(f[t + 1][next_state]) / discount(len(episode) - 1 - (t + 1)) * discount(
-                #len(episode) - 1 - t)
-            f[t][s][a] = f[t + 1][next_state][policy[next_state]] / discount(len(episode) - 1 - (t + 1)) * discount(
-                   len(episode) - 1 - t)
+                print("policy[next_state]", policy[next_state])
+                print("f[t][m][s][a] ", f[t][m][s][a])
+            print("f[t + 1][next_state][] ", f[t + 1][len(episode) - 1][next_state][policy[next_state]])
+            print("Q[s][a] ", Q[s][a])
 
-            # Update Q
-            # Q[s][a] = max(Q[next_state]) - (
-            #         max(f[t+1][next_state]) - f[t][s][a])
-            #print("max from f")
-            #print(np.argmax(Q[next_state]))
-            #print("max from Q")
-            #print(np.argmax(f[t + 1][next_state]))
-            if np.argmax(Q[next_state]) != np.argmax(f[t + 1][next_state]):
-                count += 1
-                print("Count", count)
+            Q[s][a] = Q[s][a] + step_size_1 * (Q[next_state][policy[next_state]] - (
+                    sum([f[t + 1][m][next_state][policy[next_state]] - f[t][m][s][a] for m in range(t+1, len(episode))]))
+                                               - Q[s][a])
+            print("Q[next_state][policy[next_state]] ",Q[next_state][policy[next_state]])
+            print(sum([f[t + 1][m][next_state][policy[next_state]] - f[t][m][next_state][policy[next_state]] for m in range(t+1, len(episode))]))
+            print("Q value ", Q[s])
+            policy[s] = np.argmax(Q[s])
 
-            #Q[s][a] = Q[s][a] + step_size * (max(Q[next_state]) - (
-              #      max(f[t + 1][next_state]) - f[t][s][a]) - Q[s][a])
-            Q[s][a] = Q[s][a] + step_size * (max(Q[next_state]) - (
-                    f[t + 1][next_state][policy[next_state]] - f[t][s][a]) - Q[s][a])
-            if Q[s][policy[s]] == max(Q[s]):
-                pass
-            else:
-                policy[s] = np.argmax(Q[s])
 
 
 
@@ -242,6 +240,7 @@ def td_control(env, num_episodes, isSoftmax, step_size):
                 first_time_right_larger = True
             # Track Q[21] for all actions and plot
             print("episode", i_episode)
+            print(Q[21])
             q_u.append([Q[21][0], Q[9][0]])
             q_r.append([Q[21][1], Q[9][1]])
             q_b.append([Q[21][2], Q[9][2]])
@@ -270,7 +269,7 @@ for _ in range(10):
     q_r = []
     q_b = []
     q_l = []
-    Q = td_control(env, num_episodes, isSoftmax, step_size=.5)
+    Q = td_control(env, num_episodes, isSoftmax, step_size_1=step_size_1, step_size_2=step_size_2)
     q_u_s.append(q_u)
     q_r_s.append(q_r)
     q_b_s.append(q_b)
@@ -292,6 +291,8 @@ for i in range(num_episodes):
     final_q_r.append([np.mean(q_r_s[:, i, 0]), np.std(q_r_s[:, i, 0]), np.mean(q_r_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
     final_q_b.append([np.mean(q_b_s[:, i, 0]), np.std(q_b_s[:, i, 0]), np.mean(q_b_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
     final_q_l.append([np.mean(q_l_s[:, i, 0]), np.std(q_l_s[:, i, 0]), np.mean(q_l_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
+
+
 final_q_u = np.array(final_q_u)
 final_q_r = np.array(final_q_r)
 final_q_b = np.array(final_q_b)
@@ -422,7 +423,7 @@ else:
     axs[1].set_title('Q(s=9) Gridworld')
     plt.legend()
     if isSoftmax:
-        fig.suptitle('Backward: Using Softmax' + ' alpha: ' + str(alpha))
+        fig.suptitle('Backward: Using Softmax' + ' alpha: ' + str(alpha) + ' step_size: ' + + str(step_size_1) + ', ' + str(step_size_2))
     else:
-        fig.suptitle('Backward: \u03B5-greedy' + ' (\u03B5=' + str(epsilon)+')')
+        fig.suptitle('Backward: \u03B5-greedy' + ' (\u03B5=' + str(epsilon)+')' + ' step_size: ' + str(step_size_1) + ', ' + str(step_size_2))
     fig.show()

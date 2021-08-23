@@ -20,15 +20,16 @@ import pylab as pl
 
 current_env_windy = False
 #current_env_windy = True  # Change between normal/windy gridworlds
-isSoftmax = True
+isSoftmax = False
 
 discount_factor = 1
+reward_multiplier = 10
 discounting = 'hyper'  # 'hyper', 'exp'
 init_policy = 'random'  # 'random' 'stable'
 
 # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 
-num_episodes = 30000
+num_episodes = 80000
 
 env = GridworldEnv()
 
@@ -51,10 +52,10 @@ def auto_discounting(discount_factor=discount_factor):
         return exp
 
 if isSoftmax:
-    alpha = .5  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
+    alpha = .001  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 else:
-    epsilon = .28
-
+    epsilon = .1
+step_size = 1
 def make_policy(expUtility, nA, isSoftmax):
     """
     Creates an probabilistic policy based on a given expected Utility function and alpha.
@@ -107,9 +108,9 @@ def td_control(env, num_episodes, isSoftmax, step_size):
 
     else:
         for a_ in range(4):
-            for d in range(15):
-                expUtility[8][d][a_] = 10
-                expUtility[2][d][a_] = 19
+            for d in range(30):
+                expUtility[8][d][a_] = 10 * discount(d) * reward_multiplier
+                expUtility[2][d][a_] = 19 * discount(d) * reward_multiplier
 
 
     # Take the Utility function from reward function of the environment
@@ -150,8 +151,11 @@ def td_control(env, num_episodes, isSoftmax, step_size):
             probs = agent(state)  # Select an action according to policy
 
             action = np.random.choice(np.arange(len(probs)), p=probs)
-
             next_state, reward, done, _ = env.step(action)
+
+            #while state == next_state:
+            #    action = np.random.choice(np.arange(len(probs)), p=probs)
+            #    next_state, reward, done, _ = env.step(action)
 
             if next_state != state:
                 episode.append((state, action, reward))
@@ -161,20 +165,22 @@ def td_control(env, num_episodes, isSoftmax, step_size):
 
             # Do the computation
             state_utility = Utility[state] if current_env_windy else Utility(state)
+
             u = discount(t) * state_utility
+
             if isSoftmax:
                 x = np.dot(expUtility[next_state][t + 1],
                                  softmax(expUtility[next_state][t + 1] * alpha).T)
                 expectation = x # np.log(x) if x > 0 else x
-                print("Sum of softmax", sum(softmax(expUtility[next_state][t + 1])))
+
                 #next_action = np.random.choice(np.arange(len(probs)), p=agent(next_state))
                 #expectation = expUtility[next_state][t+1][next_action]
             else:
                 expectation = np.dot(expUtility[next_state][t + 1], agent(next_state).T)
 
-            #expUtility[state][t][action] = u + expectation
-            expUtility[state][t][action] = (1 - step_size) * expUtility[state][t][action] + step_size* (u + expectation)
 
+            expUtility[state][t][action] = (1 - step_size) * expUtility[state][t][action] + step_size * (u + expectation)
+            #Utility
 
             if done:
                 break
@@ -192,8 +198,6 @@ def td_control(env, num_episodes, isSoftmax, step_size):
                     critical_episode_21 = i_episode - 1
 
 
-        print("Episode", i_episode)
-        print(episode)
         revisits.append(current_revisit)
         if current_env_windy:
             # Track Q[24] for all actions and plot
@@ -225,13 +229,13 @@ q_u_s = []
 q_r_s = []
 q_b_s = []
 q_l_s = []
-for _ in range(5):
+for _ in range(10):
     expu_correction_21 = []
     expu_u = []
     expu_r = []
     expu_b = []
     expu_l = []
-    expUtility = td_control(env, num_episodes, isSoftmax=isSoftmax, step_size=.5)
+    expUtility = td_control(env, num_episodes, isSoftmax=isSoftmax, step_size=step_size)
     q_u_s.append(expu_u)
     q_r_s.append(expu_r)
     q_b_s.append(expu_b)
@@ -380,9 +384,9 @@ else:
     axs[1].set_title('Q(s=9) Soph.: Gridworld')
     plt.legend()
     if isSoftmax:
-        fig.suptitle('Forward: using Softmax' + ' alpha: ' + str(alpha))
+        fig.suptitle('Forward: using Softmax' + ' alpha: ' + str(alpha) + ' step_size: ' + str(step_size))
     else:
-        fig.suptitle('Forward: \u03B5-greedy' + ' (\u03B5=' + str(epsilon)+')')
+        fig.suptitle('Forward: \u03B5-greedy' + ' (\u03B5=' + str(epsilon)+')' + ' step_size: ' + str(step_size))
     fig.show()
 
 
