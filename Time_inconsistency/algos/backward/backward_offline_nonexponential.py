@@ -127,7 +127,7 @@ def td_control(env, num_episodes, isSoftmax, step_size_1, step_size_2):
 
         # Print out which episode we're on, useful for debugging.
         if i_episode % 1000 == 0:
-            print("\rEpisode {}/{}.".format(i_episode, num_episodes), end="")
+            print("\rEpisode {}/{}.".format(i_episode, num_episodes))
             sys.stdout.flush()
 
         # Generate an episode.
