@@ -24,7 +24,7 @@ current_env_windy = False  # Change between normal/windy gridworlds
 
 discount_factor = 1
 reward_multiplier = 1
-step_size_1 = .5
+step_size_1 = 1
 step_size_2 = 1
 discounting = 'hyper'  # 'hyper', 'exp'
 init_policy = 'random'  # 'random' 'stable'
@@ -34,7 +34,7 @@ if isSoftmax:
     alpha = 3  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 else:
     epsilon = .2
-num_episodes = 50000  # 0000
+num_episodes = 80000  # 0000
 
 env = GridworldEnv()
 
@@ -262,7 +262,7 @@ q_u_s = []
 q_r_s = []
 q_b_s = []
 q_l_s = []
-for _ in range(10):
+for _ in range(1):
     revisits = []
     q_correction_21 = []
     q_u = []
@@ -427,3 +427,4 @@ else:
     else:
         fig.suptitle('Backward: \u03B5-greedy' + ' (\u03B5=' + str(epsilon)+')' + ' step_size: ' + str(step_size_1) + ', ' + str(step_size_2))
     fig.show()
+    fig.savefig('Q_step_size_' + str(step_size_1) + '_' + str(step_size_2) + '.png')
