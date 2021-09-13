@@ -7,9 +7,9 @@ Policy ---> agent in original paper
 
 """
 
-from envs.DoughVeg_gridworld import GridworldEnv  # windy gridworld
-#from envs.DoughVeg_windy import GridworldEnv  # deterministic simple gridworld
-# from envs.DoughVeg_simple_stochastic import GridworldEnv
+from envs.DoughVeg_gridworld import GridworldEnv  # deterministic simple gridworld
+#from envs.DoughVeg_windy import GridworldEnv  # windy gridworld
+#from envs.DoughVeg_simple_stochastic import GridworldEnv # stochastic simple gridworld
 import numpy as np
 import pandas as pd
 import sys
@@ -24,7 +24,7 @@ current_env_windy = False  # Change between normal/windy gridworlds
 
 discount_factor = 1
 reward_multiplier = 1
-step_size_1 = 1
+step_size_1 = .7
 step_size_2 = 1
 discounting = 'hyper'  # 'hyper', 'exp'
 init_policy = 'random'  # 'random' 'stable'
@@ -33,8 +33,8 @@ isSoftmax = False
 if isSoftmax:
     alpha = 3  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 else:
-    epsilon = .2
-num_episodes = 80000  # 0000
+    epsilon = .07
+num_episodes = 10000  # 0000
 
 env = GridworldEnv()
 
@@ -91,12 +91,11 @@ def make_policy(Q, nA, isSoftmax):
 # Hyperbolic Discounted Q-learning (off-policy TD control)
 def td_control(env, num_episodes, isSoftmax, step_size_1, step_size_2):
     # Global variables
-    global q_correction_21, q_u, q_r, q_b, q_l
-    global critical_episode_21, revisits
+    global q_correction_21, q_u, q_r, q_b, q_l, num_bad_episode
+    global critical_episode_21, revisits, Q_episodes
 
     # The type of discounting
     discount = auto_discounting()
-    count = 0
 
 
     # We store the values in the order Q[state][action]
@@ -194,6 +193,9 @@ def td_control(env, num_episodes, isSoftmax, step_size_1, step_size_2):
                 elif next_state == 8:
                     # f[len(episode) - 1][len(episode) - 1][2][a] = 0
                     f[len(episode) - 1][len(episode) - 1][8][a] = 10 * reward_multiplier
+        s, a, r = episode[len(episode) - 1]
+        if s != 2 and s != 8:
+            num_bad_episode += 1
         # 2. others
         for t in range(len(episode) - 2, -1, -1):
             # Initialize the boundary values for f
@@ -206,23 +208,26 @@ def td_control(env, num_episodes, isSoftmax, step_size_1, step_size_2):
             for m in range(t+1, len(episode)):
                 f_value = f[t + 1][m][next_state][policy[next_state]] / discount(m - (t + 1)) * discount(m - t)
                 f[t][m][s][a] = f[t][m][s][a] + step_size_2 * (f_value - f[t][m][s][a])
-            print("state ", s, " action ", a)
-            print("time ", t)
-            print("f values ")
-            for m in range(t+1, len(episode)):
-                print("next_state", next_state, " ", Q[next_state])
 
-                print("policy[next_state]", policy[next_state])
-                print("f[t][m][s][a] ", f[t][m][s][a])
-            print("f[t + 1][next_state][] ", f[t + 1][len(episode) - 1][next_state][policy[next_state]])
-            print("Q[s][a] ", Q[s][a])
+
 
             Q[s][a] = Q[s][a] + step_size_1 * (Q[next_state][policy[next_state]] - (
                     sum([f[t + 1][m][next_state][policy[next_state]] - f[t][m][s][a] for m in range(t+1, len(episode))]))
                                                - Q[s][a])
-            print("Q[next_state][policy[next_state]] ",Q[next_state][policy[next_state]])
-            print(sum([f[t + 1][m][next_state][policy[next_state]] - f[t][m][next_state][policy[next_state]] for m in range(t+1, len(episode))]))
-            print("Q value ", Q[s])
+
+            print("f[t][m][s][a] ")
+            print([f[t][m][s] for m in range(t + 1, len(episode))])
+            if Q[21][1] > 2.12:
+                print("state ", s, " action ", a, "time ", t)
+
+                print("modification value ", Q[next_state][policy[next_state]] - (
+                    sum([f[t + 1][m][next_state][policy[next_state]] - f[t][m][s][a] for m in range(t+1, len(episode))]))
+                                               - Q[s][a])
+                print("Q[s][a]", Q[s][a])
+
+
+
+
             policy[s] = np.argmax(Q[s])
 
 
@@ -241,6 +246,13 @@ def td_control(env, num_episodes, isSoftmax, step_size_1, step_size_2):
             # Track Q[21] for all actions and plot
             print("episode", i_episode)
             print(Q[21])
+            if Q[21][1] > 2.12:
+                print("Checking ")
+                print(episode)
+
+            Q_episodes.append(episode)
+            Q_episodes.append(list(Q[21]))
+
             q_u.append([Q[21][0], Q[9][0]])
             q_r.append([Q[21][1], Q[9][1]])
             q_b.append([Q[21][2], Q[9][2]])
@@ -256,24 +268,30 @@ critical_episode_9 = 0
 critical_index_21 = 0
 critical_episode_21 = 0
 
-np.random.seed(0)
 
 q_u_s = []
 q_r_s = []
 q_b_s = []
 q_l_s = []
-for _ in range(1):
+num_bad_episodes = []
+for _ in range(10):
     revisits = []
     q_correction_21 = []
     q_u = []
     q_r = []
     q_b = []
     q_l = []
+    num_bad_episode = 0
+    Q_episodes = []
+    np.random.seed(0)
     Q = td_control(env, num_episodes, isSoftmax, step_size_1=step_size_1, step_size_2=step_size_2)
+    df = pd.DataFrame(Q_episodes)
+    df.to_csv("../../results/Q_values_" + str(step_size_1) + ".csv")
     q_u_s.append(q_u)
     q_r_s.append(q_r)
     q_b_s.append(q_b)
     q_l_s.append(q_l)
+    num_bad_episodes.append(num_bad_episode)
 
 
 q_u_s = np.array(q_u_s)
@@ -297,6 +315,7 @@ final_q_u = np.array(final_q_u)
 final_q_r = np.array(final_q_r)
 final_q_b = np.array(final_q_b)
 final_q_l = np.array(final_q_l)
+
 # ------------------------------------------------------------------------------------------------
 print('-----')
 print('(9, UP) first appears at ep:', critical_episode_9)
@@ -378,24 +397,10 @@ if current_env_windy:
     fig.show()
 
 else:
-    print("The first time that Q[21][RIGHT] > Q[21][UP] and Q[21][LEFT] is at episode", critical_episode_21)
+    print("Average number of bad episodes ", sum(num_bad_episodes) / len(num_bad_episodes))
+    #print("The first time that Q[21][RIGHT] > Q[21][UP] and Q[21][LEFT] is at episode", critical_episode_21)
     # Graphs
     x = [i for i in range(1, 1 + len(q_u))]
-    # first pic
-    fig, axs = plt.subplots(1, 2)
-    print("Final Q_u")
-    # print(q_u)
-    axs[0].plot(x, final_q_u[:, 0] - final_q_r[:, 0])
-    axs[0].set_title('Difference Q(21, u) - Q(21, r)')
-    axs[1].plot(x, final_q_l[:, 2] - final_q_u[:, 2])
-    axs[1].set_title('Difference Q(9, l) - Q(9, u)')
-    if isSoftmax:
-        fig.suptitle('Backward: Using Softmax' + ' alpha: ' + str(alpha))
-    else:
-        fig.suptitle('Backward: \u03B5-greedy' + ' (\u03B5=' + str(epsilon)+')')
-    fig.show()
-
-    # second pic
     fig, axs = plt.subplots(1, 2)
     axs[0].plot(x, final_q_u[:, 0], label='u')
     axs[0].fill_between(x, final_q_u[:, 0] - final_q_u[:, 1], final_q_u[:, 0] + final_q_u[:, 1], alpha=0.2)
@@ -411,6 +416,17 @@ else:
     print("(21, left)", np.array(q_l)[:, 0][-1])
     axs[0].set_title('Q(s=21) Gridworld')
     axs[0].legend()
+    x_range = np.arange(0, num_episodes, step=int(num_episodes/5))
+    y_range = [final_q_r[x][0] for x in x_range]
+    y_err = [final_q_r[x, 1] for x in x_range]
+    for i in x_range:
+        height = final_q_r[i, 0]
+        axs[0].text(i, height - 0.3,
+                 '$\mu=$%s \n $\sigma=$%s' % (str(round(final_q_r[i, 0], 3)), str(round(final_q_r[i, 1], 3))),
+                 ha='center', va='bottom')
+    axs[0].errorbar(x_range, y_range,
+                yerr=y_err,
+                fmt='o')
 
     axs[1].plot(x, final_q_u[:, 2], label='u')
     axs[1].fill_between(x, final_q_u[:, 2] - final_q_u[:, 3], final_q_u[:, 2] + final_q_u[:, 3], alpha=0.2)
@@ -421,6 +437,18 @@ else:
     axs[1].plot(x, final_q_l[:, 2], label='l')
     axs[1].fill_between(x, final_q_l[:, 2] - final_q_l[:, 3], final_q_l[:, 2] + final_q_l[:, 3], alpha=0.2)
     axs[1].set_title('Q(s=9) Gridworld')
+    y_range = [final_q_u[x, 2] for x in x_range]
+    y_err = [final_q_u[x, 3] for x in x_range]
+    axs[1].errorbar(x_range, y_range,
+                    yerr=y_err,
+                    fmt='o')
+
+    #plt.yticks(np.arange(0, num_episodes, step=1000))
+    for i in x_range:
+        height = final_q_u[i, 2]
+        plt.text(i, height - 0.3,
+                 '$\mu=$%s \n $\sigma=$%s' % (str(round(final_q_u[i, 2], 3)), str(round(final_q_u[i, 3], 3))),
+                 ha='center', va='bottom')
     plt.legend()
     if isSoftmax:
         fig.suptitle('Backward: Using Softmax' + ' alpha: ' + str(alpha) + ' step_size: ' + + str(step_size_1) + ', ' + str(step_size_2))
@@ -428,3 +456,18 @@ else:
         fig.suptitle('Backward: \u03B5-greedy' + ' (\u03B5=' + str(epsilon)+')' + ' step_size: ' + str(step_size_1) + ', ' + str(step_size_2))
     fig.show()
     fig.savefig('Q_step_size_' + str(step_size_1) + '_' + str(step_size_2) + '.png')
+
+    '''# first pic
+    fig, axs = plt.subplots(1, 2)
+    print("Final Q_u")
+    # print(q_u)
+    
+    axs[0].plot(x, final_q_u[:, 0] - final_q_r[:, 0])
+    axs[0].set_title('Difference Q(21, u) - Q(21, r)')
+    axs[1].plot(x, final_q_l[:, 2] - final_q_u[:, 2])
+    axs[1].set_title('Difference Q(9, l) - Q(9, u)')
+    if isSoftmax:
+        fig.suptitle('Backward: Using Softmax' + ' alpha: ' + str(alpha))
+    else:
+        fig.suptitle('Backward: \u03B5-greedy' + ' (\u03B5=' + str(epsilon)+')')
+    fig.show()'''

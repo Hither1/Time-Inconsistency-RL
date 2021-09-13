@@ -9,6 +9,7 @@ Policy ---> agent in original paper
 
 from envs.DoughVeg_gridworld import GridworldEnv
 #from envs.DoughVeg_windy import GridworldEnv
+#from envs.DoughVeg_simple_stochastic import GridworldEnv # stochastic simple gridworld
 import numpy as np
 import pandas as pd
 import sys
@@ -23,13 +24,13 @@ current_env_windy = False
 isSoftmax = False
 
 discount_factor = 1
-reward_multiplier = 10
+reward_multiplier = 1
 discounting = 'hyper'  # 'hyper', 'exp'
 init_policy = 'random'  # 'random' 'stable'
 
 # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 
-num_episodes = 80000
+num_episodes = 30000
 
 env = GridworldEnv()
 
@@ -54,7 +55,7 @@ def auto_discounting(discount_factor=discount_factor):
 if isSoftmax:
     alpha = .001  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 else:
-    epsilon = .1
+    epsilon = .07
 step_size = 1
 def make_policy(expUtility, nA, isSoftmax):
     """
@@ -93,7 +94,7 @@ def td_control(env, num_episodes, isSoftmax, step_size):
     discount = auto_discounting()
 
     # Global variables
-    global critical_episode_9, critical_episode_21
+    global critical_episode_9, critical_episode_21, num_bad_episode
     global revisits
 
     # Initialize the expUtility matrix
@@ -197,8 +198,9 @@ def td_control(env, num_episodes, isSoftmax, step_size):
                 if critical_episode_21 == 0:  # update the episode in which we reach state 21
                     critical_episode_21 = i_episode - 1
 
-
-        revisits.append(current_revisit)
+        s, a, r = episode[len(episode) - 1]
+        if s != 2 and s != 8:
+            num_bad_episode += 1
         if current_env_windy:
             # Track Q[24] for all actions and plot
             expu_u.append([expUtility[24][0][0], expUtility[25][0][0], expUtility[31][0][0], expUtility[32][0][0]])
@@ -229,35 +231,26 @@ q_u_s = []
 q_r_s = []
 q_b_s = []
 q_l_s = []
+num_bad_episodes = []
 for _ in range(10):
     expu_correction_21 = []
-    expu_u = []
-    expu_r = []
-    expu_b = []
-    expu_l = []
+    expu_u, expu_r, expu_b, expu_l = [], [], [], []
+    num_bad_episodes = 0
     expUtility = td_control(env, num_episodes, isSoftmax=isSoftmax, step_size=step_size)
     q_u_s.append(expu_u)
     q_r_s.append(expu_r)
     q_b_s.append(expu_b)
     q_l_s.append(expu_l)
-q_u_s = np.array(q_u_s)
-q_r_s = np.array(q_r_s)
-q_b_s = np.array(q_b_s)
-q_l_s = np.array(q_l_s)
+q_u_s, q_r_s, q_b_s, q_l_s = np.array(q_u_s), np.array(q_r_s), np.array(q_b_s), np.array(q_l_s)
 
-final_q_u = []
-final_q_r = []
-final_q_b = []
-final_q_l = []
+final_q_u, final_q_r, final_q_b, final_q_l = [], [], [], []
+
 for i in range(num_episodes):
     final_q_u.append([np.mean(q_u_s[:, i, 0]), np.std(q_u_s[:, i, 0]), np.mean(q_u_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
     final_q_r.append([np.mean(q_r_s[:, i, 0]), np.std(q_r_s[:, i, 0]), np.mean(q_r_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
     final_q_b.append([np.mean(q_b_s[:, i, 0]), np.std(q_b_s[:, i, 0]), np.mean(q_b_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
     final_q_l.append([np.mean(q_l_s[:, i, 0]), np.std(q_l_s[:, i, 0]), np.mean(q_l_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
-final_q_u = np.array(final_q_u)
-final_q_r = np.array(final_q_r)
-final_q_b = np.array(final_q_b)
-final_q_l = np.array(final_q_l)
+final_q_u, final_q_r, final_q_b, final_q_l = np.array(final_q_u), np.array(final_q_r), np.array(final_q_b), np.array(final_q_l)
 # ------------------------------------------------------------------------------------------------
 
 '''Checking criticals'''
@@ -277,6 +270,7 @@ for r_ in range(nr):
     for c_ in range(nc):
         row.append(np.argmax(expUtility[r_ * nc + c_][0]))
     print(row)
+print("Average number of bad episodes ", sum(num_bad_episodes) / len(num_bad_episodes))
 
 if current_env_windy:
     print("Final Best Actions with Wind:")
@@ -344,20 +338,6 @@ if current_env_windy:
 
 else:
     x = [i for i in range(1, 1 + len(expu_u))]
-    # first pic
-    fig, axs = plt.subplots(1, 2)
-    axs[0].plot(x, final_q_u[:, 0] - final_q_r[:, 0])
-    axs[0].set_title('Difference Q(21, u) - Q(21, r) (Soph.)')
-    axs[1].plot(x, final_q_l[:, 2] - final_q_u[:, 2])
-    axs[1].set_title('Difference Q(9, l) - Q(9, u) (Soph.)')
-
-    if isSoftmax:
-        fig.suptitle('Forward: Using Softmax' + ' alpha: ' + str(alpha))
-    else:
-        fig.suptitle('Forward: \u03B5-greedy' + ' (\u03B5=' + str(epsilon)+')')
-    fig.show()
-
-    # second pic
     fig, axs = plt.subplots(1, 2)
     axs[0].plot(x, final_q_u[:, 0], label='u')
     axs[0].fill_between(x, final_q_u[:, 0] - final_q_u[:, 1], final_q_u[:, 0] + final_q_u[:, 1], alpha=0.2)
@@ -372,7 +352,11 @@ else:
     axs[0].fill_between(x, final_q_l[:, 0] - final_q_l[:, 1], final_q_l[:, 0] + final_q_l[:, 1], alpha=0.2)
     print("(21, left)", np.array(expu_l)[:, 0][-1])
     axs[0].set_title('Q(s=21) Soph.: Gridworld')
+    x_range = np.arange(0, num_episodes, step=num_episodes/5)
+    y_range = [final_q_r[x, 0] for x in x_range]
+    y_err = [final_q_r[x, 1] for x in x_range]
     axs[0].legend()
+
     axs[1].plot(x, final_q_u[:, 2], label='u')
     axs[1].fill_between(x, final_q_u[:, 2] - final_q_u[:, 3], final_q_u[:, 2] + final_q_u[:, 3], alpha=0.2)
     axs[1].plot(x, final_q_r[:, 2], label='r')
@@ -389,7 +373,18 @@ else:
         fig.suptitle('Forward: \u03B5-greedy' + ' (\u03B5=' + str(epsilon)+')' + ' step_size: ' + str(step_size))
     fig.show()
 
+'''# first pic
+    fig, axs = plt.subplots(1, 2)
+    axs[0].plot(x, final_q_u[:, 0] - final_q_r[:, 0])
+    axs[0].set_title('Difference Q(21, u) - Q(21, r) (Soph.)')
+    axs[1].plot(x, final_q_l[:, 2] - final_q_u[:, 2])
+    axs[1].set_title('Difference Q(9, l) - Q(9, u) (Soph.)')
 
+    if isSoftmax:
+        fig.suptitle('Forward: Using Softmax' + ' alpha: ' + str(alpha))
+    else:
+        fig.suptitle('Forward: \u03B5-greedy' + ' (\u03B5=' + str(epsilon)+')')
+    fig.show()'''
 
 
 

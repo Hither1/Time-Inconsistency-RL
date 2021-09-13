@@ -284,7 +284,6 @@ q_u = []
 q_r = []
 q_b = []
 q_l = []
-np.random.seed(0)
 
 q_u_s = []
 q_r_s = []
@@ -297,6 +296,7 @@ for _ in range(10):
     q_r = []
     q_b = []
     q_l = []
+    np.random.seed(0)
     Q = td_control(env, num_episodes, isSoftmax, step_size=.2)
     q_u_s.append(q_u)
     q_r_s.append(q_r)

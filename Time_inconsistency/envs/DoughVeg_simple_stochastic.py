@@ -101,16 +101,23 @@ class GridworldEnv(discrete.DiscreteEnv):
                 print('ns_down:', ns_down)
                 print('ns_left:', ns_left)
                 #stochastic = np.random.uniform()
-                if s == 9:
-                    P[9][UP] = [(.2, ns_up, reward(ns_up), is_done(ns_up))]
-                    P[9][RIGHT] = [(.2, ns_right, reward(ns_right), is_done(ns_right))]
-                    P[9][DOWN] = [(.2, ns_down, reward(ns_down), is_done(ns_down))]
-                    P[9][LEFT] = [(.2, ns_left, reward(ns_left), is_done(ns_left))]
-                else:
-                    P[s][UP] = [(1.0, ns_up, reward(ns_up), is_done(ns_up))]
-                    P[s][RIGHT] = [(1.0, ns_right, reward(ns_right), is_done(ns_right))]
-                    P[s][DOWN] = [(1.0, ns_down, reward(ns_down), is_done(ns_down))]
-                    P[s][LEFT] = [(1.0, ns_left, reward(ns_left), is_done(ns_left))]
+
+                P[s][UP] = [(0.85, ns_up, reward(ns_up), is_done(ns_up)),
+                            (0.05, ns_right, reward(ns_right), is_done(ns_right)),
+                            (0.05, ns_down, reward(ns_down), is_done(ns_down)),
+                            (0.05, ns_left, reward(ns_left), is_done(ns_left))]
+                P[s][RIGHT] = [(0.05, ns_up, reward(ns_up), is_done(ns_up)),
+                               (0.85, ns_right, reward(ns_right), is_done(ns_right)),
+                               (0.05, ns_down, reward(ns_down), is_done(ns_down)),
+                               (0.05, ns_left, reward(ns_left), is_done(ns_left))]
+                P[s][DOWN] = [(0.05, ns_up, reward(ns_up), is_done(ns_up)),
+                              (0.05, ns_right, reward(ns_right), is_done(ns_right)),
+                              (0.85, ns_down, reward(ns_down), is_done(ns_down)),
+                              (0.05, ns_left, reward(ns_left), is_done(ns_left))]
+                P[s][LEFT] = [(0.05, ns_up, reward(ns_up), is_done(ns_up)),
+                              (0.05, ns_right, reward(ns_right), is_done(ns_right)),
+                              (0.05, ns_down, reward(ns_down), is_done(ns_down)),
+                              (0.85, ns_left, reward(ns_left), is_done(ns_left))]
 
             it.iternext()
 
