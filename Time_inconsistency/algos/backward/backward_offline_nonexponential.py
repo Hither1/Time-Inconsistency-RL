@@ -7,9 +7,9 @@ Policy ---> agent in original paper
 
 """
 
-from envs.DoughVeg_gridworld import GridworldEnv  # deterministic simple gridworld
+#from envs.DoughVeg_gridworld import GridworldEnv  # deterministic simple gridworld
 #from envs.DoughVeg_windy import GridworldEnv  # windy gridworld
-#from envs.DoughVeg_simple_stochastic import GridworldEnv # stochastic simple gridworld
+from envs.DoughVeg_simple_stochastic import GridworldEnv # stochastic simple gridworld
 import numpy as np
 import pandas as pd
 import sys
@@ -24,7 +24,7 @@ current_env_windy = False  # Change between normal/windy gridworlds
 
 discount_factor = 1
 reward_multiplier = 1
-step_size_1 = .7
+step_size_1 = .1
 step_size_2 = 1
 discounting = 'hyper'  # 'hyper', 'exp'
 init_policy = 'random'  # 'random' 'stable'
@@ -34,7 +34,7 @@ if isSoftmax:
     alpha = 3  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 else:
     epsilon = .07
-num_episodes = 10000  # 0000
+num_episodes = 20000  # 0000
 
 env = GridworldEnv()
 
@@ -455,7 +455,7 @@ else:
     else:
         fig.suptitle('Backward: \u03B5-greedy' + ' (\u03B5=' + str(epsilon)+')' + ' step_size: ' + str(step_size_1) + ', ' + str(step_size_2))
     fig.show()
-    fig.savefig('Q_step_size_' + str(step_size_1) + '_' + str(step_size_2) + '.png')
+    fig.savefig('stochastic_graphs/Q_step_size_' + str(step_size_1) + '_' + str(step_size_2) + '.png')
 
     '''# first pic
     fig, axs = plt.subplots(1, 2)
