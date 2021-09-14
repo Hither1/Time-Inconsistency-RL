@@ -198,7 +198,8 @@ def td_control(env, num_episodes, isSoftmax, step_size):
                 if critical_episode_21 == 0:  # update the episode in which we reach state 21
                     critical_episode_21 = i_episode - 1
 
-        s, a, r = episode[len(episode) - 1]
+
+        s, a, r = episode[-1]
         if s != 2 and s != 8:
             num_bad_episode += 1
         if current_env_windy:
@@ -232,7 +233,7 @@ q_r_s = []
 q_b_s = []
 q_l_s = []
 num_bad_episodes = []
-for _ in range(10):
+for _ in range(1):
     expu_correction_21 = []
     expu_u, expu_r, expu_b, expu_l = [], [], [], []
     num_bad_episodes = 0

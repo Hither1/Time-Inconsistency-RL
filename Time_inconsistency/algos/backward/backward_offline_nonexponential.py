@@ -193,8 +193,10 @@ def td_control(env, num_episodes, isSoftmax, step_size_1, step_size_2):
                 elif next_state == 8:
                     # f[len(episode) - 1][len(episode) - 1][2][a] = 0
                     f[len(episode) - 1][len(episode) - 1][8][a] = 10 * reward_multiplier
-        s, a, r = episode[len(episode) - 1]
-        if s != 2 and s != 8:
+
+
+
+        if next_state != 2 and next_state != 8:
             num_bad_episode += 1
         # 2. others
         for t in range(len(episode) - 2, -1, -1):
@@ -215,15 +217,15 @@ def td_control(env, num_episodes, isSoftmax, step_size_1, step_size_2):
                     sum([f[t + 1][m][next_state][policy[next_state]] - f[t][m][s][a] for m in range(t+1, len(episode))]))
                                                - Q[s][a])
 
-            print("f[t][m][s][a] ")
-            print([f[t][m][s] for m in range(t + 1, len(episode))])
-            if Q[21][1] > 2.12:
-                print("state ", s, " action ", a, "time ", t)
+            #print("f[t][m][s][a] ")
+            #print([f[t][m][s] for m in range(t + 1, len(episode))])
+            #if Q[21][1] > 2.12:
+                #print("state ", s, " action ", a, "time ", t)
 
-                print("modification value ", Q[next_state][policy[next_state]] - (
-                    sum([f[t + 1][m][next_state][policy[next_state]] - f[t][m][s][a] for m in range(t+1, len(episode))]))
-                                               - Q[s][a])
-                print("Q[s][a]", Q[s][a])
+                #print("modification value ", Q[next_state][policy[next_state]] - (
+                    #sum([f[t + 1][m][next_state][policy[next_state]] - f[t][m][s][a] for m in range(t+1, len(episode))]))
+                     #                          - Q[s][a])
+                #print("Q[s][a]", Q[s][a])
 
 
 
