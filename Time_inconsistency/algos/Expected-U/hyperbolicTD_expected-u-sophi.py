@@ -30,7 +30,7 @@ init_policy = 'random'  # 'random' 'stable'
 
 # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 
-num_episodes = 30000
+num_episodes = 80000
 
 env = GridworldEnv()
 
@@ -199,9 +199,7 @@ def td_control(env, num_episodes, isSoftmax, step_size):
                     critical_episode_21 = i_episode - 1
 
 
-        s, a, r = episode[-1]
-        if s != 2 and s != 8:
-            num_bad_episode += 1
+
         if current_env_windy:
             # Track Q[24] for all actions and plot
             expu_u.append([expUtility[24][0][0], expUtility[25][0][0], expUtility[31][0][0], expUtility[32][0][0]])
@@ -226,7 +224,7 @@ critical_episode_9 = 0
 critical_index_21 = 0
 critical_episode_21 = 0
 
-revisits = []
+
 np.random.seed(0)
 q_u_s = []
 q_r_s = []
@@ -236,7 +234,7 @@ num_bad_episodes = []
 for _ in range(1):
     expu_correction_21 = []
     expu_u, expu_r, expu_b, expu_l = [], [], [], []
-    num_bad_episodes = 0
+    num_bad_episode = 0
     expUtility = td_control(env, num_episodes, isSoftmax=isSoftmax, step_size=step_size)
     q_u_s.append(expu_u)
     q_r_s.append(expu_r)
@@ -261,8 +259,7 @@ print('visitation to 21 aft:', critical_states_update_order[critical_index_9:].c
 # print('(21, RIGHT) first appears at ep:', critical_episode_21)
 print('Q(21, RIGHT) > Q(21, UP) first appears at ep:', critical_episode_21)
 
-print("Average number of times the agent has revisited states",
-      sum(revisits) / len(revisits))
+
 print("Final Best Actions:")
 nr = env.shape[0]
 nc = env.shape[1]
@@ -271,7 +268,7 @@ for r_ in range(nr):
     for c_ in range(nc):
         row.append(np.argmax(expUtility[r_ * nc + c_][0]))
     print(row)
-print("Average number of bad episodes ", sum(num_bad_episodes) / len(num_bad_episodes))
+#print("Average number of bad episodes ", sum(num_bad_episodes) / len(num_bad_episodes))
 
 if current_env_windy:
     print("Final Best Actions with Wind:")
@@ -353,7 +350,7 @@ else:
     axs[0].fill_between(x, final_q_l[:, 0] - final_q_l[:, 1], final_q_l[:, 0] + final_q_l[:, 1], alpha=0.2)
     print("(21, left)", np.array(expu_l)[:, 0][-1])
     axs[0].set_title('Q(s=21) Soph.: Gridworld')
-    x_range = np.arange(0, num_episodes, step=num_episodes/5)
+    x_range = np.arange(0, num_episodes, step=int(num_episodes/5))
     y_range = [final_q_r[x, 0] for x in x_range]
     y_err = [final_q_r[x, 1] for x in x_range]
     axs[0].legend()

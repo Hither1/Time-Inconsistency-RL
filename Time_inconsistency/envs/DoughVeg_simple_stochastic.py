@@ -101,7 +101,7 @@ class GridworldEnv(discrete.DiscreteEnv):
                 print('ns_down:', ns_down)
                 print('ns_left:', ns_left)
 
-                if s !=9 :
+                if s ==9 or s == 21:
                     P[s][UP] = [(1.0, ns_up, reward(ns_up), is_done(ns_up))]
                     P[s][RIGHT] = [(1.0, ns_right, reward(ns_right), is_done(ns_right))]
                     P[s][DOWN] = [(1.0, ns_down, reward(ns_down), is_done(ns_down))]

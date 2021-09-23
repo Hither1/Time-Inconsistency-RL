@@ -24,7 +24,7 @@ current_env_windy = False  # Change between normal/windy gridworlds
 
 discount_factor = 1
 reward_multiplier = 1
-step_size_1 = .1
+step_size_1 = .5
 step_size_2 = 1
 discounting = 'hyper'  # 'hyper', 'exp'
 init_policy = 'random'  # 'random' 'stable'
@@ -56,6 +56,19 @@ def auto_discounting(discount_factor=discount_factor):
     else:
         return exp
 
+
+def choose_color(number):
+    '''
+    For the purpose of choosing color dynamically so that we can have multiple colors in one line
+    '''
+    if number == 0:
+        return 'b'
+    elif number == 1:
+        return 'r'
+    elif number == 2:
+        return 'g'
+    else:
+        return 'r'
 
 def make_policy(Q, nA, isSoftmax):
     """
@@ -139,7 +152,7 @@ def td_control(env, num_episodes, isSoftmax, step_size_1, step_size_2):
 
         current_revisit = 0
         # Sample a new trajectory
-        for t in range(100):
+        for t in range(1000):
 
             if state in states:
                 current_revisit += 1
@@ -219,13 +232,13 @@ def td_control(env, num_episodes, isSoftmax, step_size_1, step_size_2):
 
             #print("f[t][m][s][a] ")
             #print([f[t][m][s] for m in range(t + 1, len(episode))])
-            #if Q[21][1] > 2.12:
-                #print("state ", s, " action ", a, "time ", t)
+            #if Q[21][0] > 2.11:
+              #  print("state ", s, " action ", a, "time ", t)
 
-                #print("modification value ", Q[next_state][policy[next_state]] - (
-                    #sum([f[t + 1][m][next_state][policy[next_state]] - f[t][m][s][a] for m in range(t+1, len(episode))]))
-                     #                          - Q[s][a])
-                #print("Q[s][a]", Q[s][a])
+              #  print("modification value ", Q[next_state][policy[next_state]] - (
+               #     sum([f[t + 1][m][next_state][policy[next_state]] - f[t][m][s][a] for m in range(t+1, len(episode))]))
+                  #                             - Q[s][a])
+               # print("Q[s][a]", Q[s][a])
 
 
 
@@ -248,7 +261,7 @@ def td_control(env, num_episodes, isSoftmax, step_size_1, step_size_2):
             # Track Q[21] for all actions and plot
             print("episode", i_episode)
             print(Q[21])
-            if Q[21][1] > 2.12:
+            if Q[21][0] > 2.08:
                 print("Checking ")
                 print(episode)
 
@@ -276,7 +289,7 @@ q_r_s = []
 q_b_s = []
 q_l_s = []
 num_bad_episodes = []
-for _ in range(10):
+for _ in range(1):
     revisits = []
     q_correction_21 = []
     q_u = []
@@ -404,16 +417,18 @@ else:
     # Graphs
     x = [i for i in range(1, 1 + len(q_u))]
     fig, axs = plt.subplots(1, 2)
-    axs[0].plot(x, final_q_u[:, 0], label='u')
+    axs[0].plot(x,
+                max(final_q_u[:, 0], final_q_r[:, 0], final_q_b[:, 0], final_q_l[:, 0]),
+                color=choose_color(np.argmax(final_q_u[:, 0], final_q_r[:, 0], final_q_b[:, 0], final_q_l[:, 0])))
     axs[0].fill_between(x, final_q_u[:, 0] - final_q_u[:, 1], final_q_u[:, 0] + final_q_u[:, 1], alpha=0.2)
     print("(21, up)", np.array(q_u)[:, 0][-1])
-    axs[0].plot(x, final_q_r[:, 0], label='r')
+    #axs[0].plot(x, final_q_r[:, 0], label='r')
     axs[0].fill_between(x, final_q_r[:, 0] - final_q_r[:, 1], final_q_r[:, 0] + final_q_r[:, 1], alpha=0.2)
     print("(21, right)", np.array(q_r)[:, 0][-1])
-    axs[0].plot(x, final_q_b[:, 0], label='b')
+    #axs[0].plot(x, final_q_b[:, 0], label='b')
     axs[0].fill_between(x, final_q_b[:, 0] - final_q_b[:, 1], final_q_b[:, 0] + final_q_b[:, 1], alpha=0.2)
     print("(21, below)", np.array(q_b)[:, 0][-1])
-    axs[0].plot(x, final_q_l[:, 0], label='l')
+    #axs[0].plot(x, final_q_l[:, 0], label='l')
     axs[0].fill_between(x, final_q_l[:, 0] - final_q_l[:, 1], final_q_l[:, 0] + final_q_l[:, 1], alpha=0.2)
     print("(21, left)", np.array(q_l)[:, 0][-1])
     axs[0].set_title('Q(s=21) Gridworld')
@@ -423,22 +438,21 @@ else:
     y_err = [final_q_r[x, 1] for x in x_range]
     for i in x_range:
         height = final_q_r[i, 0]
-        axs[0].text(i, height - 0.3,
-                 '$\mu=$%s \n $\sigma=$%s' % (str(round(final_q_r[i, 0], 3)), str(round(final_q_r[i, 1], 3))),
-                 ha='center', va='bottom')
+        print(i, height, '$\mu=$%s \n $\sigma=$%s' % (str(round(final_q_r[i, 0], 3)), str(round(final_q_r[i, 1], 3))))
     axs[0].errorbar(x_range, y_range,
                 yerr=y_err,
                 fmt='o')
 
     axs[1].plot(x, final_q_u[:, 2], label='u')
     axs[1].fill_between(x, final_q_u[:, 2] - final_q_u[:, 3], final_q_u[:, 2] + final_q_u[:, 3], alpha=0.2)
-    axs[1].plot(x, final_q_r[:, 2], label='r')
+    #axs[1].plot(x, final_q_r[:, 2], label='r')
     axs[1].fill_between(x, final_q_r[:, 2] - final_q_r[:, 3], final_q_r[:, 2] + final_q_r[:, 3], alpha=0.2)
-    axs[1].plot(x, final_q_b[:, 2], label='b')
+    #axs[1].plot(x, final_q_b[:, 2], label='b')
     axs[1].fill_between(x, final_q_b[:, 2] - final_q_b[:, 3], final_q_b[:, 2] + final_q_b[:, 3], alpha=0.2)
-    axs[1].plot(x, final_q_l[:, 2], label='l')
+    #axs[1].plot(x, final_q_l[:, 2], label='l')
     axs[1].fill_between(x, final_q_l[:, 2] - final_q_l[:, 3], final_q_l[:, 2] + final_q_l[:, 3], alpha=0.2)
     axs[1].set_title('Q(s=9) Gridworld')
+    plt.legend()
     y_range = [final_q_u[x, 2] for x in x_range]
     y_err = [final_q_u[x, 3] for x in x_range]
     axs[1].errorbar(x_range, y_range,
@@ -446,12 +460,11 @@ else:
                     fmt='o')
 
     #plt.yticks(np.arange(0, num_episodes, step=1000))
-    for i in x_range:
+    '''for i in x_range:
         height = final_q_u[i, 2]
-        plt.text(i, height - 0.3,
-                 '$\mu=$%s \n $\sigma=$%s' % (str(round(final_q_u[i, 2], 3)), str(round(final_q_u[i, 3], 3))),
-                 ha='center', va='bottom')
-    plt.legend()
+        print(i, height,
+                 '$\mu=$%s \n $\sigma=$%s' % (str(round(final_q_u[i, 2], 3)), str(round(final_q_u[i, 3], 3))))'''
+
     if isSoftmax:
         fig.suptitle('Backward: Using Softmax' + ' alpha: ' + str(alpha) + ' step_size: ' + + str(step_size_1) + ', ' + str(step_size_2))
     else:
@@ -459,17 +472,4 @@ else:
     fig.show()
     fig.savefig('stochastic_graphs/Q_step_size_' + str(step_size_1) + '_' + str(step_size_2) + '.png')
 
-    '''# first pic
-    fig, axs = plt.subplots(1, 2)
-    print("Final Q_u")
-    # print(q_u)
-    
-    axs[0].plot(x, final_q_u[:, 0] - final_q_r[:, 0])
-    axs[0].set_title('Difference Q(21, u) - Q(21, r)')
-    axs[1].plot(x, final_q_l[:, 2] - final_q_u[:, 2])
-    axs[1].set_title('Difference Q(9, l) - Q(9, u)')
-    if isSoftmax:
-        fig.suptitle('Backward: Using Softmax' + ' alpha: ' + str(alpha))
-    else:
-        fig.suptitle('Backward: \u03B5-greedy' + ' (\u03B5=' + str(epsilon)+')')
-    fig.show()'''
+
