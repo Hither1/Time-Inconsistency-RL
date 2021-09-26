@@ -88,6 +88,7 @@ class GridworldEnv(discrete.DiscreteEnv):
 
             # Not a terminal state
             else:
+                p = 0.85
 
                 # Moving to a wall is not feasible; stays in its position
                 ns_up = s if (y == 0 or is_wall(s - MAX_X)) else s - MAX_X
@@ -101,28 +102,28 @@ class GridworldEnv(discrete.DiscreteEnv):
                 print('ns_down:', ns_down)
                 print('ns_left:', ns_left)
 
-                if s ==9 or s == 21:
+                if s != 9:
                     P[s][UP] = [(1.0, ns_up, reward(ns_up), is_done(ns_up))]
                     P[s][RIGHT] = [(1.0, ns_right, reward(ns_right), is_done(ns_right))]
                     P[s][DOWN] = [(1.0, ns_down, reward(ns_down), is_done(ns_down))]
                     P[s][LEFT] = [(1.0, ns_left, reward(ns_left), is_done(ns_left))]
                 else:
-                    P[s][UP] = [(0.85, ns_up, reward(ns_up), is_done(ns_up)),
-                            (0.05, ns_right, reward(ns_right), is_done(ns_right)),
-                            (0.05, ns_down, reward(ns_down), is_done(ns_down)),
-                            (0.05, ns_left, reward(ns_left), is_done(ns_left))]
-                    P[s][RIGHT] = [(0.05, ns_up, reward(ns_up), is_done(ns_up)),
-                               (0.85, ns_right, reward(ns_right), is_done(ns_right)),
-                               (0.05, ns_down, reward(ns_down), is_done(ns_down)),
-                               (0.05, ns_left, reward(ns_left), is_done(ns_left))]
-                    P[s][DOWN] = [(0.05, ns_up, reward(ns_up), is_done(ns_up)),
-                              (0.05, ns_right, reward(ns_right), is_done(ns_right)),
-                              (0.85, ns_down, reward(ns_down), is_done(ns_down)),
-                              (0.05, ns_left, reward(ns_left), is_done(ns_left))]
-                    P[s][LEFT] = [(0.05, ns_up, reward(ns_up), is_done(ns_up)),
-                              (0.05, ns_right, reward(ns_right), is_done(ns_right)),
-                              (0.05, ns_down, reward(ns_down), is_done(ns_down)),
-                              (0.85, ns_left, reward(ns_left), is_done(ns_left))]
+                    P[s][UP] = [(p, ns_up, reward(ns_up), is_done(ns_up)),
+                            ((1-p)/3, ns_right, reward(ns_right), is_done(ns_right)),
+                            ((1-p)/3, ns_down, reward(ns_down), is_done(ns_down)),
+                            ((1-p)/3, ns_left, reward(ns_left), is_done(ns_left))]
+                    P[s][RIGHT] = [((1-p)/3, ns_up, reward(ns_up), is_done(ns_up)),
+                               (p, ns_right, reward(ns_right), is_done(ns_right)),
+                               ((1-p)/3, ns_down, reward(ns_down), is_done(ns_down)),
+                               ((1-p)/3, ns_left, reward(ns_left), is_done(ns_left))]
+                    P[s][DOWN] = [((1-p)/3, ns_up, reward(ns_up), is_done(ns_up)),
+                              ((1-p)/3, ns_right, reward(ns_right), is_done(ns_right)),
+                              (p, ns_down, reward(ns_down), is_done(ns_down)),
+                              ((1-p)/3, ns_left, reward(ns_left), is_done(ns_left))]
+                    P[s][LEFT] = [((1-p)/3, ns_up, reward(ns_up), is_done(ns_up)),
+                              ((1-p)/3, ns_right, reward(ns_right), is_done(ns_right)),
+                              ((1-p)/3, ns_down, reward(ns_down), is_done(ns_down)),
+                              (p, ns_left, reward(ns_left), is_done(ns_left))]
 
             it.iternext()
 
