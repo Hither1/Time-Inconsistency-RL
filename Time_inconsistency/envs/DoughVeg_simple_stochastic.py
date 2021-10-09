@@ -88,7 +88,7 @@ class GridworldEnv(discrete.DiscreteEnv):
 
             # Not a terminal state
             else:
-                p = 0.85
+                p = 0.9
 
                 # Moving to a wall is not feasible; stays in its position
                 ns_up = s if (y == 0 or is_wall(s - MAX_X)) else s - MAX_X

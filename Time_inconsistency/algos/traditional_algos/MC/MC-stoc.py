@@ -2,7 +2,8 @@ import numpy as np
 import sys
 import matplotlib.pyplot as plt
 import pandas as pd
-
+import seaborn as sns
+sns.set_style("whitegrid")
 sys.path.append("")
 
 from collections import defaultdict
@@ -14,7 +15,7 @@ discounting = 'hyper'  # 'hyper', 'exp'
 init_policy = 'random'  # 'random' 'stable'
 
 epsilon = .07
-num_episodes = 40000  # 0000
+num_episodes = 80000  # 0000
 
 env = GridworldEnv()
 
@@ -159,10 +160,10 @@ def mc_control_epsilon_greedy(env, num_episodes, discount_factor, epsilon, step_
 
                 curr_policy = np.argmax(policy(state))
                 curr_Q = Q[state]
-                print('curr_policy_9:', curr_policy)
-                print('curr_Q[9]:', curr_Q)
+                #print('curr_policy_9:', curr_policy)
+                #print('curr_Q[9]:', curr_Q)
 
-                print('G:', G)
+                #print('G:', G)
 
             # if state == 21 and action == 1: # check for when the change to SPE is reflected at 21
             if state == 21 and Q[21][1] > Q[21][0]:
@@ -173,18 +174,14 @@ def mc_control_epsilon_greedy(env, num_episodes, discount_factor, epsilon, step_
                 # count_21 += 1
 
                 curr_policy = np.argmax(policy(state))
-                curr_Q = Q[state]
 
-                print('trajectory aft 21:', episode[first_occurence_idx:])
-
-                print('--------------')
 
         # Track Q[21] for all actions and plot
-        q_u.append([Q[21][0], Q[9][0]])
-        q_r.append([Q[21][1], Q[9][1]])
-        q_b.append([Q[21][2], Q[9][2]])
-        q_l.append([Q[21][3], Q[9][3]])
-        V.append([max(Q[21]), max(Q[9])])
+        q_u.append([Q[x][0] for x in range(24)])
+        q_r.append([Q[x][1] for x in range(24)])
+        q_b.append([Q[x][2] for x in range(24)])
+        q_l.append([Q[x][3] for x in range(24)])
+        V.append([max(Q[21])])
 
     return Q
 
@@ -202,31 +199,29 @@ np.random.seed(0)
 # Q, policy = mc_control_epsilon_greedy(env, num_episodes, discount_factor, epsilon)
 
 V_s, q_u_s, q_r_s, q_b_s, q_l_s = [], [], [], [], []
-for _ in range(10):
+for _ in range(50):
     V, q_u, q_r, q_b, q_l = [], [], [], [], []
     Q = mc_control_epsilon_greedy(env, num_episodes, discount_factor, epsilon, step_size=step_size)
     V, q_u, q_r, q_b, q_l = np.array(V), np.array(q_u), np.array(q_r), np.array(q_b), np.array(q_l)
-    #action_21 = np.argmax([q_u[-1][0], q_r[-1][0], q_b[-1][0], q_l[-1][0]])
-    #action_9 = np.argmax([q_u[-1][1], q_r[-1][1], q_b[-1][1], q_l[-1][1]])
-    #V.append(np.transpose([[q_u, q_r, q_b, q_l][action_21][:, 0], [q_u, q_r, q_b, q_l][action_9][:, 1]]))
+
     q_u_s.append(q_u)
     q_r_s.append(q_r)
     q_b_s.append(q_b)
     q_l_s.append(q_l)
     V_s.append(V)
-    #num_bad_episodes.append(num_bad_episode)
 
 V_s, q_u_s, q_r_s, q_b_s, q_l_s = np.array(V_s), np.array(q_u_s), np.array(q_r_s), np.array(q_b_s), np.array(q_l_s)
 
 
 final_q_u, final_q_r, final_q_b, final_q_l, final_V = [], [], [], [], []
 for i in range(num_episodes):
-    final_V.append([np.mean(V_s[:, i, 0]), np.std(V_s[:, i, 0]), np.mean(V_s[:, i, 1]), np.std(V_s[:, i, 1])])
-    final_q_u.append([np.mean(q_u_s[:, i, 0]), np.std(q_u_s[:, i, 0]), np.mean(q_u_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
-    final_q_r.append([np.mean(q_r_s[:, i, 0]), np.std(q_r_s[:, i, 0]), np.mean(q_r_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
-    final_q_b.append([np.mean(q_b_s[:, i, 0]), np.std(q_b_s[:, i, 0]), np.mean(q_b_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
-    final_q_l.append([np.mean(q_l_s[:, i, 0]), np.std(q_l_s[:, i, 0]), np.mean(q_l_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
+    final_V.append([np.mean(V_s[:, i, 0]), np.std(V_s[:, i, 0])])
+    final_q_u.append([np.mean(q_u_s[:, i, x]) for x in range(24)] + [np.std(q_u_s[:, i, x]) for x in range(24)])
+    final_q_r.append([np.mean(q_r_s[:, i, x]) for x in range(24)] + [np.std(q_r_s[:, i, x]) for x in range(24)])
+    final_q_b.append([np.mean(q_b_s[:, i, x]) for x in range(24)] + [np.std(q_b_s[:, i, x]) for x in range(24)])
+    final_q_l.append([np.mean(q_l_s[:, i, x]) for x in range(24)] + [np.std(q_l_s[:, i, x]) for x in range(24)])
 final_V, final_q_u, final_q_r, final_q_b, final_q_l = np.array(final_V), np.array(final_q_u), np.array(final_q_r), np.array(final_q_b), np.array(final_q_l)
+
 
 df = pd.DataFrame(final_V)
 df.to_csv("../../../results/stoc/MC/V_values_" + str(step_size) + ".csv")
@@ -234,21 +229,43 @@ df.to_csv("../../../results/stoc/MC/V_values_" + str(step_size) + ".csv")
 # ------------------------------------------------------------------------------------------------
 
 '''Checking criticals'''
-print('EPSILON:', epsilon)
-print('POLICY INIT:', init_policy)
-print('DISCOUNTING:', discounting)
-print('-----')
-print("first overtake episode (average) s 21")
-for i in range(num_episodes-1, 0, -1):
-    if final_q_r[i][0] >= final_q_u[i][0] and final_q_r[i-1][0] < final_q_u[i-1][0]:
-        print("is ",i)
+i_21, i_9 = 0, 0
+for i in range(num_episodes - 1, 0, -1):
+    if final_q_r[i][21] >= final_q_u[i][21] and final_q_r[i - 1][21] < final_q_u[i - 1][21]:
+        print("first overtake episode (average) of s=21 is ", i)
+        i_21 = i
+        break
+for i in range(num_episodes - 1, -1, -1):
+    if final_q_l[i][9] >= final_q_u[i][9] and final_q_l[i - 1][9] < final_q_u[i - 1][9]:
+        print("first overtake episode (average) of s=9 is ", i)
+        i_9 = i
         break
 
-print("first overtake episode (average) s 9")
-for i in range(num_episodes-1, 0, -1):
-    if final_q_r[i][3] >= final_q_u[i][0] and final_q_r[i-1][3] < final_q_u[i-1][0]:
-        print("is ",i)
-        break
+
+
+'''print("Final Best Actions at 20K:")
+nr = env.shape[0]
+nc = env.shape[1]
+for r_ in range(nr):
+    row = []
+    for c_ in range(nc):
+        row.append(np.argmax([final_q_u[20000-1][r_ * nc + c_],
+                            final_q_r[20000-1][r_ * nc + c_],
+                            final_q_b[20000-1][r_ * nc + c_],
+                            final_q_l[20000-1][r_ * nc + c_]]
+                            ))
+    print(row)
+
+print("Best Actions at 30K:")
+for r_ in range(nr):
+    row = []
+    for c_ in range(nc):
+        row.append(np.argmax([final_q_u[30000-1][r_ * nc + c_],
+                            final_q_r[30000-1][r_ * nc + c_],
+                            final_q_b[30000-1][r_ * nc + c_],
+                            final_q_l[30000-1][r_ * nc + c_]]
+                            ))
+    print(row)
 
 print("Final Best Actions:")
 nr = env.shape[0]
@@ -256,28 +273,74 @@ nc = env.shape[1]
 for r_ in range(nr):
     row = []
     for c_ in range(nc):
-        row.append(np.argmax(Q[r_ * nc + c_]))
+        row.append(np.argmax([final_q_u[-1][r_ * nc + c_],
+                            final_q_r[-1][r_ * nc + c_],
+                            final_q_b[-1][r_ * nc + c_],
+                            final_q_l[-1][r_ * nc + c_]]
+                            ))
     print(row)
+
+
+
+
+'''
 # Graphs
 x = [i for i in range(1, 1 + len(q_u))]
 
 # second pic
-fig, axs = plt.subplots(1, 2)
-axs[0].plot(x, final_V[:, 0], label='u')
-axs[0].fill_between(x, final_V[:, 0] - final_V[:, 1], final_V[:, 0] + final_V[:, 1], alpha=0.2)
+'''plt.plot(x, final_V[:, 0], label='u')
+plt.fill_between(x, final_V[:, 0] - final_V[:, 1], final_V[:, 0] + final_V[:, 1], alpha=0.2)
 print("(21, up)", np.array(q_u)[:, 0][-1])
 print("(21, right)", np.array(q_r)[:, 0][-1])
 print("(21, below)", np.array(q_b)[:, 0][-1])
 print("(21, left)", np.array(q_l)[:, 0][-1])
-axs[0].set_title('Q(s=21) Gridworld')
-axs[0].legend()
-
-axs[1].plot(x, final_V[:, 2], label='u')
-axs[1].fill_between(x, final_V[:, 2] - final_V[:, 3], final_V[:, 2] + final_V[:, 3], alpha=0.2)
-axs[1].set_title('Q(s=9) Gridworld')
+plt.title('Q(s=21) Gridworld')
 plt.legend()
-fig.suptitle('MC: \u03B5-greedy' + ' (\u03B5=' + str(epsilon) + ')')
-fig.show()
+plt.show()
+
+plt.plot(x, final_V[:, 2], label='u')
+plt.fill_between(x, final_V[:, 2] - final_V[:, 3], final_V[:, 2] + final_V[:, 3], alpha=0.2)'''
+plt.title('Q(s=9) Gridworld')
+plt.legend()
+plt.suptitle('MC: \u03B5-greedy' + ' (\u03B5=' + str(epsilon) + ')')
+plt.legend()
+plt.show()
+
+x = [i for i in range(1, 1 + len(q_u))]
+linewidth = 3
+plt.ylim([0, 4])
+plt.xlim([0, num_episodes])
+plt.plot(x, final_q_u[:, 21], label='UP', linewidth=linewidth)
+plt.fill_between(x, final_q_u[:, 21] - final_q_u[:, 21+24], final_q_u[:, 21] + final_q_u[:, 21+24], alpha=0.2)
+print("(21, up)",final_q_u[:, 21][-1])
+plt.plot(x, final_q_r[:, 21], label='RIGHT', linewidth=linewidth)
+plt.fill_between(x, final_q_r[:, 21] - final_q_r[:, 21+24], final_q_r[:, 21] + final_q_r[:, 21+24], alpha=0.2)
+print("(21, right)", final_q_r[:, 21][-1])
+#plt.plot(x, final_q_b[:, 21], label='b')
+#plt.fill_between(x, final_q_b[:, 21] - final_q_b[:, 21+24], final_q_b[:, 21] + final_q_b[:, 21+24], alpha=0.2)
+#print("(21, below)", final_q_b[:, 21][-1])
+#plt.plot(x, final_q_l[:, 21], label='l')
+#plt.fill_between(x, final_q_l[:, 21] - final_q_l[:, 21+24], final_q_l[:, 21] + final_q_l[:, 21+24], alpha=0.2)
+#print("(21, left)", final_q_l[:, 21][-1])
+plt.title('Q(s=21) MC '+'(\u03B5 = .07,' + r"$\bar{T} = 100$)" + " Stochastic")
+plt.legend()
+plt.annotate("Overtake at " + str(i_21), (i_21, final_q_r[i_21][21] - 0.3))
+plt.show()
+
+plt.xlim([0, num_episodes])
+plt.ylim([0, 6.1])
+plt.plot(x, final_q_u[:, 9], label='UP', color = "blue", linewidth=linewidth)
+plt.fill_between(x, final_q_u[:, 9] - final_q_u[:, 9+24], final_q_u[:, 9] + final_q_u[:, 9+24], alpha=0.2)
+#plt.plot(x, final_q_r[:, 9], label='RIGHT')
+#plt.fill_between(x, final_q_r[:, 9] - final_q_r[:, 9+24], final_q_r[:, 9] + final_q_r[:, 9+24], alpha=0.2)
+#plt.plot(x, final_q_b[:, 9], label='BELOW')
+#plt.fill_between(x, final_q_b[:, 9] - final_q_b[:, 9+24], final_q_b[:, 9] + final_q_b[:, 9+24], alpha=0.2)
+plt.plot(x, final_q_l[:, 9], label='LEFT', color = "red", linewidth=linewidth)
+plt.fill_between(x, final_q_l[:, 9] - final_q_l[:, 9+24], final_q_l[:, 9] + final_q_l[:, 9+24], alpha=0.2)
+plt.title('Q(s=9) MC '+'(\u03B5 = .07,' + r"$\bar{T} = 100$)" + " Stochastic")
+plt.annotate("Overtake at " + str(i_9), (i_9, final_q_u[i_9][9] - 0.3))
+plt.legend()
+plt.show()
 
 '''Computing V*(s)'''
 V_estimate = defaultdict(float)
@@ -294,49 +357,8 @@ V_realized = defaultdict(float)
 V_error = defaultdict(float)
 discount = auto_discounting(discount_factor)
 
-for s0 in range(24):
-
-    if is_wall(s0):
-        continue
-    # reset env manually
-    env.s = s0
-    env.lastaction = None
-
-    episode = []
-    state = s0
-
-    for t in range(100):
-
-        probs = policy(state)
-        action = np.random.choice(np.arange(len(probs)), p=probs)
-        next_state, reward, done, _ = env.step(action)
-
-        episode.append((state, action, reward))
-
-        if done:
-            break
-
-        state = next_state
-
-    #Total_Reward = sum([x[2]*(discount_factor**i) for i,x in enumerate(episode)])
-    Total_Reward = sum([x[2]*(discount(i)) for i, x in enumerate(episode)])
-
-    if s0 == 21:
-        print(episode)
-        print(Total_Reward)
-
-    V_realized[s0] = Total_Reward
-    V_error[s0] = Total_Reward - V_estimate[s0]
-
-# Check any scaling issue
-avg_V_real = np.average([V_realized[s] for s in V_realized.keys()])'''
-
-''' Results
-print('DISCOUNTING:', discounting)
-print('sq_error of value_estimate:', V_error)
-print('sum_of_sq_error:', sum([V_error[s]**2 for s in V_error.keys()]))
-print('averaged values:', avg_V_real)
 '''
+
 
 
 

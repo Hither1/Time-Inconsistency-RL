@@ -18,6 +18,8 @@ import matplotlib.pyplot as plt
 from scipy.special import softmax
 import time
 import pylab as pl
+import seaborn as sns
+sns.set_style("whitegrid")
 
 current_env_windy = False
 #current_env_windy = True  # Change between normal/windy gridworlds
@@ -30,7 +32,7 @@ init_policy = 'random'  # 'random' 'stable'
 
 # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 
-num_episodes = 80000
+num_episodes = 20000
 
 env = GridworldEnv()
 
@@ -151,6 +153,10 @@ def td_control(env, num_episodes, isSoftmax, step_size):
             action = np.random.choice(np.arange(len(probs)), p=probs)
             next_state, reward, done, _ = env.step(action)
 
+            #while state == next_state:
+            #    action = np.random.choice(np.arange(len(probs)), p=probs)
+            #    next_state, reward, done, _ = env.step(action)
+
             if next_state != state:
                 episode.append((state, action, reward))
 
@@ -167,8 +173,7 @@ def td_control(env, num_episodes, isSoftmax, step_size):
                                  softmax(expUtility[next_state][t + 1] * alpha).T)
                 expectation = x # np.log(x) if x > 0 else x
 
-                #next_action = np.random.choice(np.arange(len(probs)), p=agent(next_state))
-                #expectation = expUtility[next_state][t+1][next_action]
+
             else:
                 expectation = np.dot(expUtility[next_state][t + 1], agent(next_state).T)
 
@@ -194,7 +199,6 @@ def td_control(env, num_episodes, isSoftmax, step_size):
 
         if next_state != 2 and next_state != 8:
             num_bad_episode += 1
-            print(episode)
 
         if current_env_windy:
             # Track Q[24] for all actions and plot
@@ -204,11 +208,11 @@ def td_control(env, num_episodes, isSoftmax, step_size):
             expu_l.append([expUtility[24][0][3], expUtility[25][0][3], expUtility[31][0][3], expUtility[32][0][3]])
         else:
             # Track Q[21] for all actions and plot
-            expu_u.append([expUtility[21][0][0], expUtility[9][0][0]])
-            expu_r.append([expUtility[21][0][1], expUtility[9][0][1]])
-            expu_b.append([expUtility[21][0][2], expUtility[9][0][2]])
-            expu_l.append([expUtility[21][0][3], expUtility[9][0][3]])
-            V.append([max(expUtility[21][0]), max(expUtility[9][0])])
+            expu_u.append([expUtility[x][0][0] for x in range(24)])
+            expu_r.append([expUtility[x][0][1] for x in range(24)])
+            expu_b.append([expUtility[x][0][2] for x in range(24)])
+            expu_l.append([expUtility[x][0][3] for x in range(24)])
+            V.append([max(expUtility[21][0])])
 
 
     return expUtility
@@ -221,19 +225,16 @@ critical_episode_9 = 0
 critical_index_21 = 0
 critical_episode_21 = 0
 
-
 np.random.seed(0)
 V_s, q_u_s, q_r_s, q_b_s, q_l_s = [], [], [], [], []
 num_bad_episodes = []
-for _ in range(10):
+for _ in range(50):
     expu_correction_21 = []
     V, expu_u, expu_r, expu_b, expu_l = [], [], [], [], []
     num_bad_episode = 0
     expUtility = td_control(env, num_episodes, isSoftmax=isSoftmax, step_size=step_size)
     V, expu_u, expu_r, expu_b, expu_l = np.array(V), np.array(expu_u), np.array(expu_r), np.array(expu_b), np.array(expu_l)
-    #action_21 = np.argmax([expu_u[-1][0], expu_r[-1][0], expu_b[-1][0], expu_l[-1][0]])
-    #action_9 = np.argmax([expu_u[-1][1], expu_r[-1][1], expu_b[-1][1], expu_l[-1][1]])
-    #V.append(np.transpose([[expu_u, expu_r, expu_b, expu_l][action_21][:, 0], [expu_u, expu_r, expu_b, expu_l][action_9][:, 1]]))
+
     q_u_s.append(expu_u)
     q_r_s.append(expu_r)
     q_b_s.append(expu_b)
@@ -241,47 +242,45 @@ for _ in range(10):
     V_s.append(V)
     num_bad_episodes.append(num_bad_episode)
 
+
 V_s, q_u_s, q_r_s, q_b_s, q_l_s = np.array(V_s), np.array(q_u_s), np.array(q_r_s), np.array(q_b_s), np.array(q_l_s)
 
 final_q_u, final_q_r, final_q_b, final_q_l, final_V = [], [], [], [], []
 for i in range(num_episodes):
-    final_V.append([np.mean(V_s[:, i, 0]), np.std(V_s[:, i, 0]), np.mean(V_s[:, i, 1]), np.std(V_s[:, i, 1])])
-    final_q_u.append([np.mean(q_u_s[:, i, 0]), np.std(q_u_s[:, i, 0]), np.mean(q_u_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
-    final_q_r.append([np.mean(q_r_s[:, i, 0]), np.std(q_r_s[:, i, 0]), np.mean(q_r_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
-    final_q_b.append([np.mean(q_b_s[:, i, 0]), np.std(q_b_s[:, i, 0]), np.mean(q_b_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
-    final_q_l.append([np.mean(q_l_s[:, i, 0]), np.std(q_l_s[:, i, 0]), np.mean(q_l_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
+    final_V.append([np.mean(V_s[:, i]), np.std(V_s[:, i])])
+    final_q_u.append([np.mean(q_u_s[:, i, x]) for x in range(24)] + [np.std(q_u_s[:, i, x]) for x in range(24)])
+    final_q_r.append([np.mean(q_r_s[:, i, x]) for x in range(24)] + [np.std(q_r_s[:, i, x]) for x in range(24)])
+    final_q_b.append([np.mean(q_b_s[:, i, x]) for x in range(24)] + [np.std(q_b_s[:, i, x]) for x in range(24)])
+    final_q_l.append([np.mean(q_l_s[:, i, x]) for x in range(24)] + [np.std(q_l_s[:, i, x]) for x in range(24)])
 final_V, final_q_u, final_q_r, final_q_b, final_q_l = np.array(final_V), np.array(final_q_u), np.array(
     final_q_r), np.array(final_q_b), np.array(final_q_l)
 
-df = pd.DataFrame(final_V)
-df.to_csv("../../results/stoc/fwd/V_values_" + str(step_size) + ".csv")
+df_V, df_u, df_r, df_b, df_l = pd.DataFrame(final_V), pd.DataFrame(final_q_u), pd.DataFrame(final_q_r), pd.DataFrame(final_q_b), pd.DataFrame(final_q_l)
+df_V.to_csv("../../results/stoc/fwd/round_0/V_values_" + str(step_size) + ".csv")
+df_u.to_csv("../../results/stoc/fwd/round_0/Q_values_" + str(step_size)  + "/u.csv")
+df_r.to_csv("../../results/stoc/fwd/round_0/Q_values_" + str(step_size)  + "/r.csv")
+df_b.to_csv("../../results/stoc/fwd/round_0/Q_values_" + str(step_size)  + "/b.csv")
+df_l.to_csv("../../results/stoc/fwd/round_0/Q_values_" + str(step_size)  + "/l.csv")
 
 # ------------------------------------------------------------------------------------------------
 
 '''Checking criticals'''
 print('-----')
-print("first overtake episode (average) s 21")
-for i in range(num_episodes-1, 0, -1):
-    if final_q_r[i][0] >= final_q_u[i][0] and final_q_r[i-1][0] < final_q_u[i-1][0]:
-        print("is ",i)
+i_21, i_9 = 0, 0
+for i in range(num_episodes - 1, 0, -1):
+    if final_q_r[i][21] >= final_q_u[i][21] and final_q_r[i - 1][21] < final_q_u[i - 1][21]:
+        print("first overtake episode (average) of s=21 is ", i)
+        i_21 = i
         break
-
-print("first overtake episode (average) s 9")
-for i in range(num_episodes-1, 0, -1):
-    if final_q_r[i][3] >= final_q_u[i][0] and final_q_r[i-1][3] < final_q_u[i-1][0]:
-        print("is ",i)
+for i in range(num_episodes - 1, -1, -1):
+    if final_q_l[i][9] >= final_q_u[i][9] and final_q_l[i - 1][9] < final_q_u[i - 1][9]:
+        print("first overtake episode (average) of s=9 is ", i)
+        i_9 = i
         break
 
 print("average number of bad episodes", sum(num_bad_episodes)/len(num_bad_episodes))
 
-print("Final Best Actions:")
-nr = env.shape[0]
-nc = env.shape[1]
-for r_ in range(nr):
-    row = []
-    for c_ in range(nc):
-        row.append(np.argmax(expUtility[r_ * nc + c_][0]))
-    print(row)
+'''
 #print("Average number of bad episodes ", sum(num_bad_episodes) / len(num_bad_episodes))
 
 if current_env_windy:
@@ -350,26 +349,65 @@ if current_env_windy:
 
 else:
     x = [i for i in range(1, 1 + len(expu_u))]
-    fig, axs = plt.subplots(1, 2)
-    axs[0].plot(x, final_V[:, 0], label='u')
-    axs[0].fill_between(x, final_V[:, 0] - final_V[:, 1], final_V[:, 0] + final_V[:, 1], alpha=0.2)
+
+    plt.plot(x, final_V[:], label='u')
+    plt.fill_between(x, final_V[:, 0] - final_V[:, 1], final_V[:, 0] + final_V[:, 1], alpha=0.2)
     print("(21, up)", np.array(expu_u)[:, 0][-1])
     print("(21, right)", np.array(expu_r)[:, 0][-1])
     print("(21, below)", np.array(expu_b)[:, 0][-1])
-    axs[0].set_title('Q(s=21) Soph.: Gridworld')
+    print("(21, left)", np.array(expu_l)[:, 0][-1])
+    plt.title('V Soph.: Gridworld')
     x_range = np.arange(0, num_episodes, step=int(num_episodes/5))
     y_range = [final_V[x, 0] for x in x_range]
     y_err = [final_V[x, 1] for x in x_range]
-    axs[0].legend()
-
-    axs[1].plot(x, final_V[:, 2], label='u')
-    axs[1].fill_between(x, final_V[:, 2] - final_V[:, 3], final_V[:, 2] + final_V[:, 3], alpha=0.2)
-    axs[1].set_title('Q(s=9) Soph.: Gridworld')
     plt.legend()
     if isSoftmax:
-        fig.suptitle('Forward: using Softmax' + ' alpha: ' + str(alpha) + ' step_size: ' + str(step_size))
+        plt.suptitle('Forward: using Softmax' + ' alpha: ' + str(alpha) + ' step_size: ' + str(step_size))
     else:
-        fig.suptitle('Forward: \u03B5-greedy' + ' (\u03B5=' + str(epsilon)+')' + ' step_size: ' + str(step_size))
-    fig.show()
+        plt.suptitle('Forward: \u03B5-greedy' + ' (\u03B5=' + str(epsilon)+')' + ' step_size: ' + str(step_size))
+    plt.show()
+
+'''
+for r in [19, 29, 999]:
+    nr = env.shape[0]
+    nc = env.shape[1]
+    for i in []:
+        print("Final Best Actions at: " + str(r+1))
+    for r_ in range(nr):
+        row = []
+        for c_ in range(nc):
+            row.append(np.argmax([final_q_u[r][r_ * nc + c_],
+                                  final_q_r[r][r_ * nc + c_],
+                                  final_q_b[r][r_ * nc + c_],
+                                  final_q_l[r][r_ * nc + c_]]
+                                 ))
+        print(row)
+
+    x = [i for i in range(1 + r)]
+    linewidth = 3
+    plt.ylim([0, 4])
+    plt.xlim([0, r])
+    plt.plot(x, final_q_u[:, 21], label='UP', linewidth=linewidth)
+    plt.fill_between(x, final_q_u[:, 21] - final_q_u[:, 21+24], final_q_u[:, 21] + final_q_u[:, 21+24], alpha=0.2)
+    print("(21, up)",final_q_u[:, 21][-1])
+    plt.plot(x, final_q_r[:, 21], label='RIGHT', linewidth=linewidth)
+    plt.fill_between(x, final_q_r[:, 21] - final_q_r[:, 21+24], final_q_r[:, 21] + final_q_r[:, 21+24], alpha=0.2)
+    print("(21, right)", final_q_r[:, 21][-1])
+    plt.title('Q(s=21) Backward Q-learning '+'(\u03B5 = .07,\u03B1' + r'$_{Q}$' +'=.4,' + r"$\bar{T} = 100$)" + " Stochastic")
+    plt.legend()
+    plt.annotate("Overtake at " + str(i_21), (i_21, final_q_r[i_21][21] - 0.3))
+    plt.show()
+
+    plt.xlim([0, num_episodes])
+    plt.ylim([0, 6.1])
+    plt.plot(x, final_q_u[:, 9], label='UP', color = "blue", linewidth=linewidth)
+    plt.fill_between(x, final_q_u[:, 9] - final_q_u[:, 9+24], final_q_u[:, 9] + final_q_u[:, 9+24], alpha=0.2)
+
+    plt.plot(x, final_q_l[:, 9], label='LEFT', color = "red", linewidth=linewidth)
+    plt.fill_between(x, final_q_l[:, 9] - final_q_l[:, 9+24], final_q_l[:, 9] + final_q_l[:, 9+24], alpha=0.2)
+    plt.title('Q(s=9) Backward Q-learning '+'(\u03B5 = .07,\u03B1' + r'$_{Q}$' +'=.4,' + r"$\bar{T} = 100$)" + " Stochastic")
+    plt.annotate("Overtake at " + str(i_9), (i_9, final_q_u[i_9][9] - 0.3))
+    plt.legend()
+    plt.show()
 
 
