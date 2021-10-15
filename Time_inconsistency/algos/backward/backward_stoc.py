@@ -38,7 +38,7 @@ if isSoftmax:
     alpha = 3  # The noise parameter that modulates between random choice (=0) and perfect maximization (=\infty)
 else:
     epsilon = .07
-num_episodes = 100000 # 0000
+num_episodes = 30000 # 0000
 
 env = GridworldEnv()
 
@@ -229,11 +229,8 @@ def td_control(env, num_episodes, isSoftmax, step_size_1, step_size_2):
                     max(0, sum([f[t + 1][m][next_state][policy[next_state]] - f[t][m][s][a] for m in range(t+1, len(episode))])))
                                                - Q[s][a])
 
-
-
-
-
-            policy[s] = np.argmax(Q[s])
+            if Q[s][policy[s]] != np.max(Q[s]):
+                policy[s] = np.argmax(Q[s])
 
         episode_stack.append(episode)
         if len(episode_stack) > 5:
@@ -319,11 +316,11 @@ for i in range(num_episodes):
 final_V, final_q_u, final_q_r, final_q_b, final_q_l = np.array(final_V), np.array(final_q_u), np.array(final_q_r), np.array(final_q_b), np.array(final_q_l)
 
 df_V, df_u, df_r, df_b, df_l = pd.DataFrame(final_V), pd.DataFrame(final_q_u), pd.DataFrame(final_q_r), pd.DataFrame(final_q_b), pd.DataFrame(final_q_l)
-df_V.to_csv("../../results/stoc/BPI/round_0/V_values_" + str(step_size_1) + ".csv")
-df_u.to_csv("../../results/stoc/BPI/round_0/Q_values_" + str(step_size_1)  + "/u.csv")
-df_r.to_csv("../../results/stoc/BPI/round_0/Q_values_" + str(step_size_1)  + "/r.csv")
-df_b.to_csv("../../results/stoc/BPI/round_0/Q_values_" + str(step_size_1)  + "/b.csv")
-df_l.to_csv("../../results/stoc/BPI/round_0/Q_values_" + str(step_size_1)  + "/l.csv")
+df_V.to_csv("../../results/stoc/BPI/round_5/con_V_values_" + str(step_size_1) + ".csv")
+df_u.to_csv("../../results/stoc/BPI/round_5/con_Q_values_" + str(step_size_1)  + "/u.csv")
+df_r.to_csv("../../results/stoc/BPI/round_5/con_Q_values_" + str(step_size_1)  + "/r.csv")
+df_b.to_csv("../../results/stoc/BPI/round_5/con_Q_values_" + str(step_size_1)  + "/b.csv")
+df_l.to_csv("../../results/stoc/BPI/round_5/con_Q_values_" + str(step_size_1)  + "/l.csv")
 
 # ------------------------------------------------------------------------------------------------
 print('-----')
@@ -437,7 +434,7 @@ else:
     fig.show()
     fig.savefig('stochastic_graphs/Q_step_size_' + str(step_size_1) + '_' + str(step_size_2) + '.png')
 '''
-for r in [19999, 29999, 99999]: #999
+for r in [19999, 29999]: #999
     nr = env.shape[0]
     nc = env.shape[1]
     for i in []:

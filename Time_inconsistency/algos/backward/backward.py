@@ -237,7 +237,8 @@ def td_control(env, num_episodes, isSoftmax, step_size_1, step_size_2):
                 print("modification value ", Q[next_state][policy[next_state]] - (
                     sum([f[t + 1][m][next_state][policy[next_state]] - f[t][m][s][a] for m in range(t+1, len(episode))]))
                                                - Q[s][a])'''
-            policy[s] = np.argmax(Q[s])
+            if Q[s][policy[s]] != np.max(Q[s]):
+                policy[s] = np.argmax(Q[s])
 
 
         if current_env_windy:
@@ -308,11 +309,11 @@ for i in range(num_episodes):
 final_V, final_q_u, final_q_r, final_q_b, final_q_l = np.array(final_V), np.array(final_q_u), np.array(final_q_r), np.array(final_q_b), np.array(final_q_l)
 
 df_V, df_u, df_r, df_b, df_l = pd.DataFrame(final_V), pd.DataFrame(final_q_u), pd.DataFrame(final_q_r), pd.DataFrame(final_q_b), pd.DataFrame(final_q_l)
-df_V.to_csv("../../results/simple/BPI/round_0/V_values_" + str(step_size_1) + ".csv")
-df_u.to_csv("../../results/simple/BPI/round_0/Q_values_" + str(step_size_1)  + "/u.csv")
-df_r.to_csv("../../results/simple/BPI/round_0/Q_values_" + str(step_size_1)  + "/r.csv")
-df_b.to_csv("../../results/simple/BPI/round_0/Q_values_" + str(step_size_1)  + "/b.csv")
-df_l.to_csv("../../results/simple/BPI/round_0/Q_values_" + str(step_size_1)  + "/l.csv")
+df_V.to_csv("../../results/simple/BPI/round_9/V_values_" + str(step_size_1) + ".csv")
+df_u.to_csv("../../results/simple/BPI/round_9/Q_values_" + str(step_size_1)  + "/u.csv")
+df_r.to_csv("../../results/simple/BPI/round_9/Q_values_" + str(step_size_1)  + "/r.csv")
+df_b.to_csv("../../results/simple/BPI/round_9/Q_values_" + str(step_size_1)  + "/b.csv")
+df_l.to_csv("../../results/simple/BPI/round_9/Q_values_" + str(step_size_1)  + "/l.csv")
 
 
 # ------------------------------------------------------------------------------------------------
@@ -419,7 +420,7 @@ else:
     fig.show()
     fig.savefig('stochastic_graphs/Q_step_size_' + str(step_size_1) + '_' + str(step_size_2) + '.png')
 '''
-for r in [19999, 29999, 99999]:
+for r in [19999, 29999]:
     nr = env.shape[0]
     nc = env.shape[1]
     for i in []:
@@ -434,29 +435,33 @@ for r in [19999, 29999, 99999]:
                                  ))
         print(row)
 
+    print("/")
     x = [i for i in range(1 + r)]
     linewidth = 3
     plt.ylim([0, 4])
     plt.xlim([0, r])
-    plt.plot(x, final_q_u[:, 21], label='UP', linewidth=linewidth)
-    plt.fill_between(x, final_q_u[:, 21] - final_q_u[:, 21+24], final_q_u[:, 21] + final_q_u[:, 21+24], alpha=0.2)
-    print("(21, up)",final_q_u[:, 21][-1])
-    plt.plot(x, final_q_r[:, 21], label='RIGHT', linewidth=linewidth)
-    plt.fill_between(x, final_q_r[:, 21] - final_q_r[:, 21+24], final_q_r[:, 21] + final_q_r[:, 21+24], alpha=0.2)
-    print("(21, right)", final_q_r[:, 21][-1])
-    plt.title('Q(s=21) Backward Q-learning '+'(\u03B5 = .07,\u03B1' + r'$_{Q}$' +'=.4,' + r"$\bar{T} = 100$)" + " Stochastic")
+    plt.plot(x, final_q_u[:r+1, 21], label='UP', linewidth=linewidth)
+    plt.fill_between(x, final_q_u[:r+1, 21] - final_q_u[:r+1, 21+24], final_q_u[:r+1, 21] + final_q_u[:r+1, 21+24], alpha=0.2)
+
+    plt.plot(x, final_q_r[:r+1, 21], label='RIGHT', linewidth=linewidth)
+    plt.fill_between(x, final_q_r[:r+1, 21] - final_q_r[:r+1, 21+24], final_q_r[:r+1, 21] + final_q_r[:r+1, 21+24], alpha=0.2)
+
+    plt.title('Q(s=21) Backward Q-learning '+'(\u03B5 = .07,\u03B1' + r'$_{Q}$' +'=.4,' + r"$\bar{T} = 100$)" + " Deterministic")
     plt.legend()
     plt.annotate("Overtake at " + str(i_21), (i_21, final_q_r[i_21][21] - 0.3))
     plt.show()
 
-    plt.xlim([0, num_episodes])
+    plt.xlim([0, r])
     plt.ylim([0, 6.1])
-    plt.plot(x, final_q_u[:, 9], label='UP', color = "blue", linewidth=linewidth)
-    plt.fill_between(x, final_q_u[:, 9] - final_q_u[:, 9+24], final_q_u[:, 9] + final_q_u[:, 9+24], alpha=0.2)
+    plt.plot(x, final_q_u[:r + 1, 9], label='UP', linewidth=linewidth)
+    plt.fill_between(x, final_q_u[:r + 1, 9] - final_q_u[:r + 1, 9 + 24],
+                     final_q_u[:r + 1, 9] + final_q_u[:r + 1, 9 + 24], alpha=0.2)
 
-    plt.plot(x, final_q_l[:, 9], label='LEFT', color = "red", linewidth=linewidth)
-    plt.fill_between(x, final_q_l[:, 9] - final_q_l[:, 9+24], final_q_l[:, 9] + final_q_l[:, 9+24], alpha=0.2)
-    plt.title('Q(s=9) Backward Q-learning '+'(\u03B5 = .07,\u03B1' + r'$_{Q}$' +'=.4,' + r"$\bar{T} = 100$)" + " Stochastic")
+    plt.plot(x, final_q_l[:r + 1, 9], label='LEFT', color="green", linewidth=linewidth)
+    plt.fill_between(x, final_q_l[:r + 1, 9] - final_q_l[:r + 1, 9 + 24],
+                     final_q_l[:r + 1, 9] + final_q_l[:r + 1, 9 + 24], color="green", alpha=0.2)
+    plt.title(
+        'Q(s=9) Backward Q-learning ' + '(\u03B5 = .07,\u03B1' + r'$_{Q}$' + '=.4,' + r"$\bar{T} = 100$)" + " Deterministic")
     plt.annotate("Overtake at " + str(i_9), (i_9, final_q_u[i_9][9] - 0.3))
     plt.legend()
     plt.show()
