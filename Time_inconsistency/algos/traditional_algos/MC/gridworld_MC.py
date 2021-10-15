@@ -15,7 +15,7 @@ discounting = 'hyper'  # 'hyper', 'exp'
 init_policy = 'random'  # 'random' 'stable'
 
 epsilon = .07
-num_episodes = 80000  # 0000
+num_episodes = 100000  # 0000
 
 env = GridworldEnv()
 
@@ -223,8 +223,12 @@ for i in range(num_episodes):
 final_V, final_q_u, final_q_r, final_q_b, final_q_l = np.array(final_V), np.array(final_q_u), np.array(final_q_r), np.array(final_q_b), np.array(final_q_l)
 
 
-df = pd.DataFrame(final_V)
-df.to_csv("../../../results/simple/MC/V_values_" + str(step_size) + ".csv")
+df_V, df_u, df_r, df_b, df_l = pd.DataFrame(final_V), pd.DataFrame(final_q_u), pd.DataFrame(final_q_r), pd.DataFrame(final_q_b), pd.DataFrame(final_q_l)
+df_V.to_csv("../../../results/simple/MC/round_9/V_values_" + str(step_size) + ".csv")
+df_u.to_csv("../../../results/simple/MC/round_9/Q_values_" + str(step_size)  + "/u.csv")
+df_r.to_csv("../../../results/simple/MC/round_9/Q_values_" + str(step_size)  + "/r.csv")
+df_b.to_csv("../../../results/simple/MC/round_9/Q_values_" + str(step_size)  + "/b.csv")
+df_l.to_csv("../../../results/simple/MC/round_9/Q_values_" + str(step_size)  + "/l.csv")
 
 # ------------------------------------------------------------------------------------------------
 
@@ -276,14 +280,14 @@ plt.legend()
 plt.show()
 
 plt.plot(x, final_V[:, 2], label='u')
-plt.fill_between(x, final_V[:, 2] - final_V[:, 3], final_V[:, 2] + final_V[:, 3], alpha=0.2)'''
+plt.fill_between(x, final_V[:, 2] - final_V[:, 3], final_V[:, 2] + final_V[:, 3], alpha=0.2)
 plt.title('Q(s=9) Gridworld')
 plt.legend()
 plt.suptitle('MC: \u03B5-greedy' + ' (\u03B5=' + str(epsilon) + ')')
 plt.legend()
-plt.show()
+plt.show()'''
 
-for r in [19999, 29999, 99999]: #999
+for r in [19999, 29999, 99999]:
     nr = env.shape[0]
     nc = env.shape[1]
     for i in []:
@@ -298,16 +302,17 @@ for r in [19999, 29999, 99999]: #999
                                  ))
         print(row)
 
+    print("/")
     x = [i for i in range(1 + r)]
     linewidth = 3
     plt.ylim([0, 4])
     plt.xlim([0, r])
     plt.plot(x, final_q_u[:r+1, 21], label='UP', linewidth=linewidth)
     plt.fill_between(x, final_q_u[:r+1, 21] - final_q_u[:r+1, 21+24], final_q_u[:r+1, 21] + final_q_u[:r+1, 21+24], alpha=0.2)
-    print("(21, up)",final_q_u[:r+1, 21][-1])
+
     plt.plot(x, final_q_r[:r+1, 21], label='RIGHT', linewidth=linewidth)
     plt.fill_between(x, final_q_r[:r+1, 21] - final_q_r[:r+1, 21+24], final_q_r[:r+1, 21] + final_q_r[:r+1, 21+24], alpha=0.2)
-    print("(21, right)", final_q_r[:r+1, 21][-1])
+
     plt.title('Q(s=21) MC '+'(\u03B5 = .07,' + r"$\bar{T} = 100$)" + " Deterministic")
     plt.legend()
     plt.annotate("Overtake at " + str(i_21), (i_21, final_q_r[i_21][21] - 0.3))
@@ -315,29 +320,17 @@ for r in [19999, 29999, 99999]: #999
 
     plt.xlim([0, r])
     plt.ylim([0, 6.1])
-    plt.plot(x, final_q_u[:r+1, 9], label='UP', linewidth=linewidth)
-    plt.fill_between(x, final_q_u[:r+1, 9] - final_q_u[:r+1, 9+24], final_q_u[:r+1, 9] + final_q_u[:r+1, 9+24], alpha=0.2)
+    plt.plot(x, final_q_u[:r + 1, 9], label='UP', linewidth=linewidth)
+    plt.fill_between(x, final_q_u[:r + 1, 9] - final_q_u[:r + 1, 9 + 24],
+                     final_q_u[:r + 1, 9] + final_q_u[:r + 1, 9 + 24], alpha=0.2)
 
-    plt.plot(x, final_q_l[:r+1, 9], label='LEFT', color="green", linewidth=linewidth)
-    plt.fill_between(x, final_q_l[:r+1, 9] - final_q_l[:r+1, 9+24], final_q_l[:r+1, 9] + final_q_l[:r+1, 9+24], color="green", alpha=0.2)
-    plt.title('Q(s=9) MC '+'(\u03B5 = .07,' + r"$\bar{T} = 100$)" + " Deterministic")
+    plt.plot(x, final_q_l[:r + 1, 9], label='LEFT', color="green", linewidth=linewidth)
+    plt.fill_between(x, final_q_l[:r + 1, 9] - final_q_l[:r + 1, 9 + 24],
+                     final_q_l[:r + 1, 9] + final_q_l[:r + 1, 9 + 24], color="green", alpha=0.2)
+    plt.title('Q(s=9) MC ' + '(\u03B5 = .07,' + r"$\bar{T} = 100$)" + " Deterministic")
     plt.annotate("Overtake at " + str(i_9), (i_9, final_q_u[i_9][9] - 0.3))
     plt.legend()
     plt.show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
