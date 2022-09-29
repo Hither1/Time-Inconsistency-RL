@@ -24,7 +24,7 @@ current_env_windy = False  # Change between normal/windy gridworlds
 
 discount_factor = 1
 reward_multiplier = 1
-step_size_1 = .5
+step_size_1 = .4
 step_size_2 = 1
 discounting = 'hyper'  # 'hyper', 'exp'
 init_policy = 'random'  # 'random' 'stable'
@@ -226,9 +226,9 @@ def td_control(env, num_episodes, isSoftmax, step_size_1, step_size_2):
 
 
 
-            Q[s][a] = Q[s][a] + step_size_1 * (Q[next_state][policy[next_state]] - (
-                    sum([f[t + 1][m][next_state][policy[next_state]] - f[t][m][s][a] for m in range(t+1, len(episode))]))
-                                               - Q[s][a])
+            delta = Q[next_state][policy[next_state]] - max(
+                    sum([f[t + 1][m][next_state][policy[next_state]] - f[t][m][s][a] for m in range(t+1, len(episode))]), 0)
+            Q[s][a] = Q[s][a] + step_size_1 * (delta - Q[s][a])
 
             #print("f[t][m][s][a] ")
             #print([f[t][m][s] for m in range(t + 1, len(episode))])
@@ -239,12 +239,7 @@ def td_control(env, num_episodes, isSoftmax, step_size_1, step_size_2):
                #     sum([f[t + 1][m][next_state][policy[next_state]] - f[t][m][s][a] for m in range(t+1, len(episode))]))
                   #                             - Q[s][a])
                # print("Q[s][a]", Q[s][a])
-
-
-
-
             policy[s] = np.argmax(Q[s])
-
 
 
 
@@ -259,11 +254,11 @@ def td_control(env, num_episodes, isSoftmax, step_size_1, step_size_2):
                 critical_episode_21 = i_episode
                 first_time_right_larger = True
             # Track Q[21] for all actions and plot
-            print("episode", i_episode)
+
             print(Q[21])
-            if Q[21][0] > 2.08:
-                print("Checking ")
-                print(episode)
+            # if Q[21][0] > 2.08:
+            #     print("Checking ")
+            #     print(episode)
 
             Q_episodes.append(episode)
             Q_episodes.append(list(Q[21]))
@@ -289,7 +284,7 @@ q_r_s = []
 q_b_s = []
 q_l_s = []
 num_bad_episodes = []
-for _ in range(1):
+for _ in range(50):
     revisits = []
     q_correction_21 = []
     q_u = []
@@ -412,25 +407,23 @@ if current_env_windy:
     fig.show()
 
 else:
-    print("Average number of bad episodes ", sum(num_bad_episodes) / len(num_bad_episodes))
     #print("The first time that Q[21][RIGHT] > Q[21][UP] and Q[21][LEFT] is at episode", critical_episode_21)
     # Graphs
     x = [i for i in range(1, 1 + len(q_u))]
     fig, axs = plt.subplots(1, 2)
-    axs[0].plot(x,
-                max(final_q_u[:, 0], final_q_r[:, 0], final_q_b[:, 0], final_q_l[:, 0]),
-                color=choose_color(np.argmax(final_q_u[:, 0], final_q_r[:, 0], final_q_b[:, 0], final_q_l[:, 0])))
+    axs[0].plot(x, final_q_u[:, 0], label='u')
+    #axs[0].plot(x, np.maximum.reduce([final_q_u[:, 0], final_q_r[:, 0], final_q_b[:, 0], final_q_l[:, 0]]))
     axs[0].fill_between(x, final_q_u[:, 0] - final_q_u[:, 1], final_q_u[:, 0] + final_q_u[:, 1], alpha=0.2)
     print("(21, up)", np.array(q_u)[:, 0][-1])
-    #axs[0].plot(x, final_q_r[:, 0], label='r')
+    axs[0].plot(x, final_q_r[:, 0], label='r')
     axs[0].fill_between(x, final_q_r[:, 0] - final_q_r[:, 1], final_q_r[:, 0] + final_q_r[:, 1], alpha=0.2)
     print("(21, right)", np.array(q_r)[:, 0][-1])
     #axs[0].plot(x, final_q_b[:, 0], label='b')
-    axs[0].fill_between(x, final_q_b[:, 0] - final_q_b[:, 1], final_q_b[:, 0] + final_q_b[:, 1], alpha=0.2)
-    print("(21, below)", np.array(q_b)[:, 0][-1])
+    #axs[0].fill_between(x, final_q_b[:, 0] - final_q_b[:, 1], final_q_b[:, 0] + final_q_b[:, 1], alpha=0.2)
+    #print("(21, below)", np.array(q_b)[:, 0][-1])
     #axs[0].plot(x, final_q_l[:, 0], label='l')
-    axs[0].fill_between(x, final_q_l[:, 0] - final_q_l[:, 1], final_q_l[:, 0] + final_q_l[:, 1], alpha=0.2)
-    print("(21, left)", np.array(q_l)[:, 0][-1])
+    #axs[0].fill_between(x, final_q_l[:, 0] - final_q_l[:, 1], final_q_l[:, 0] + final_q_l[:, 1], alpha=0.2)
+    #print("(21, left)", np.array(q_l)[:, 0][-1])
     axs[0].set_title('Q(s=21) Gridworld')
     axs[0].legend()
     x_range = np.arange(0, num_episodes, step=int(num_episodes/5))
@@ -439,9 +432,6 @@ else:
     for i in x_range:
         height = final_q_r[i, 0]
         print(i, height, '$\mu=$%s \n $\sigma=$%s' % (str(round(final_q_r[i, 0], 3)), str(round(final_q_r[i, 1], 3))))
-    axs[0].errorbar(x_range, y_range,
-                yerr=y_err,
-                fmt='o')
 
     axs[1].plot(x, final_q_u[:, 2], label='u')
     axs[1].fill_between(x, final_q_u[:, 2] - final_q_u[:, 3], final_q_u[:, 2] + final_q_u[:, 3], alpha=0.2)
@@ -453,11 +443,6 @@ else:
     axs[1].fill_between(x, final_q_l[:, 2] - final_q_l[:, 3], final_q_l[:, 2] + final_q_l[:, 3], alpha=0.2)
     axs[1].set_title('Q(s=9) Gridworld')
     plt.legend()
-    y_range = [final_q_u[x, 2] for x in x_range]
-    y_err = [final_q_u[x, 3] for x in x_range]
-    axs[1].errorbar(x_range, y_range,
-                    yerr=y_err,
-                    fmt='o')
 
     #plt.yticks(np.arange(0, num_episodes, step=1000))
     '''for i in x_range:
