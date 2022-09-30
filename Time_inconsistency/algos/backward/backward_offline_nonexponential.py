@@ -284,7 +284,7 @@ q_r_s = []
 q_b_s = []
 q_l_s = []
 num_bad_episodes = []
-for _ in range(50):
+for _ in range(5):
     revisits = []
     q_correction_21 = []
     q_u = []
@@ -312,18 +312,15 @@ q_l_s = np.array(q_l_s)
 
 final_q_u = []
 final_q_r = []
-final_q_b = []
 final_q_l = []
 for i in range(num_episodes):
     final_q_u.append([np.mean(q_u_s[:, i, 0]), np.std(q_u_s[:, i, 0]), np.mean(q_u_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
     final_q_r.append([np.mean(q_r_s[:, i, 0]), np.std(q_r_s[:, i, 0]), np.mean(q_r_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
-    final_q_b.append([np.mean(q_b_s[:, i, 0]), np.std(q_b_s[:, i, 0]), np.mean(q_b_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
     final_q_l.append([np.mean(q_l_s[:, i, 0]), np.std(q_l_s[:, i, 0]), np.mean(q_l_s[:, i, 1]), np.std(q_u_s[:, i, 1])])
 
 
 final_q_u = np.array(final_q_u)
 final_q_r = np.array(final_q_r)
-final_q_b = np.array(final_q_b)
 final_q_l = np.array(final_q_l)
 
 # ------------------------------------------------------------------------------------------------
@@ -435,10 +432,10 @@ else:
 
     axs[1].plot(x, final_q_u[:, 2], label='u')
     axs[1].fill_between(x, final_q_u[:, 2] - final_q_u[:, 3], final_q_u[:, 2] + final_q_u[:, 3], alpha=0.2)
-    #axs[1].plot(x, final_q_r[:, 2], label='r')
-    axs[1].fill_between(x, final_q_r[:, 2] - final_q_r[:, 3], final_q_r[:, 2] + final_q_r[:, 3], alpha=0.2)
+    axs[1].plot(x, final_q_l[:, 2], label='l')
+    axs[1].fill_between(x, final_q_l[:, 2] - final_q_l[:, 3], final_q_l[:, 2] + final_q_l[:, 3], alpha=0.2)
     #axs[1].plot(x, final_q_b[:, 2], label='b')
-    axs[1].fill_between(x, final_q_b[:, 2] - final_q_b[:, 3], final_q_b[:, 2] + final_q_b[:, 3], alpha=0.2)
+
     #axs[1].plot(x, final_q_l[:, 2], label='l')
     axs[1].fill_between(x, final_q_l[:, 2] - final_q_l[:, 3], final_q_l[:, 2] + final_q_l[:, 3], alpha=0.2)
     axs[1].set_title('Q(s=9) Gridworld')
