@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Aug 29 16:18:59 2022
-
-@author: Nixie S Lesmana
-"""
-
 import numpy as np
 import pandas as pd
 import sys
@@ -26,11 +19,11 @@ current_env_windy = False #True
 env_ID = 'D' # 'S'
 
 if env_ID == 'D':   
-    from lib.envs.DoughVeg_gridworld import GridworldEnv # stochastic simple gridworld
+    from lib.envs.Gridworld_D import GridworldEnv # stochastic simple gridworld
     step_size_1 = .4
     step_size_2 = 1.0
 else:
-    from lib.envs.DoughVeg_simple_stochastic import GridworldEnv
+    from lib.envs.Gridworld_S import GridworldEnv
     step_size_1 = .4
     step_size_2 = .9
 
