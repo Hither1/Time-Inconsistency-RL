@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Aug 29 16:18:59 2022
-
-@author: Nixie S Lesmana
-"""
-
 import numpy as np
 import pandas as pd
 import sys
@@ -30,7 +23,7 @@ G_seed = 0 # for sweeping: G_low, G_high, G_distrib, G_seed, G_size
 G_low, G_high, G_distrib = 0.01, 0.99, 'Unif'
 
 if env_ID == 'D':   
-    from lib.envs.DoughVeg_gridworld import GridworldEnv # stochastic simple gridworld
+    from lib.envs.Gridworld_D import GridworldEnv # stochastic simple gridworld
     step_size_1 = .4
     step_size_2 = 1.0
     
@@ -38,7 +31,7 @@ if env_ID == 'D':
     G_size = 1000 # 1000 better, 200 for fair comparison on the num of vf
     G = np.sort(np.random.uniform(G_low, G_high, G_size))
 else:
-    from lib.envs.DoughVeg_simple_stochastic import GridworldEnv
+    from lib.envs.Gridworld_S import GridworldEnv
     step_size_1 = .4
     step_size_2 = .9
     
