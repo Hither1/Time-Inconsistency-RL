@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Nov  9 16:32:21 2020
-@author: Nixie S Lesmana
-"""
-
 import numpy as np
 import sys
 from gym.envs.toy_text import discrete
