@@ -23,9 +23,9 @@ if "../" not in sys.path:
 env_ID = 'S'
 
 if env_ID == 'D':   
-    from lib.envs.DoughVeg_gridworld import GridworldEnv # stochastic simple gridworld
+    from lib.envs.Gridworld_D import GridworldEnv # stochastic simple gridworld
 else:
-    from lib.envs.DoughVeg_simple_stochastic import GridworldEnv
+    from lib.envs.Gridworld_S import GridworldEnv
 
 #from envs.DoughVeg_gridworld import GridworldEnv
 
